@@ -20,6 +20,12 @@ jobs:
   build:
     runs-on: windows-latest
 
+    # Attaching the executable to a release is a write to the repository.
+    # Without this the job still builds, then fails with 403 on the upload,
+    # because a repository can default its token to read-only.
+    permissions:
+      contents: write
+
     steps:
       - uses: actions/checkout@v4
 
