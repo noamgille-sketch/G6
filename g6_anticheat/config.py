@@ -6,9 +6,15 @@ APP_NAME = "G6 Guard"
 IS_WINDOWS = platform.system() == "Windows"
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Signature files ship with the code and are read-only.
 DATA_DIR = os.path.join(BASE_DIR, "data")
-DB_PATH = os.path.join(DATA_DIR, "g6guard.sqlite3")
 SIGNATURES_PATH = os.path.join(DATA_DIR, "signatures.json")
+
+# The database is the only thing written at runtime. On a host it belongs on
+# a mounted volume, which must NOT be data/ - mounting there would hide the
+# signature files shipped in the repo.
+DB_PATH = os.environ.get("G6_DB_PATH") or os.path.join(DATA_DIR, "g6guard.sqlite3")
 
 # Process names we treat as "the game" - findings inside these processes
 # (injected/manually-mapped modules, suspicious threads) matter most.
@@ -22,3 +28,4 @@ GAME_PROCESS_NAMES = {
 }
 
 os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(os.path.dirname(os.path.abspath(DB_PATH)), exist_ok=True)

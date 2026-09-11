@@ -32,12 +32,12 @@ def parse_link(link: str) -> tuple[str, str]:
     link = link.strip().rstrip("/")
     if "/verify/" not in link:
         raise SystemExit(
-            "That does not look like a verification link.\n"
-            "Expected something like: https://example.com/verify/AbCd1234..."
+            "Ça ne ressemble pas à un lien de vérification.\n"
+            "Attendu : https://exemple.com/verify/AbCd1234..."
         )
     base, token = link.rsplit("/verify/", 1)
     if not token:
-        raise SystemExit("The link is missing its token.")
+        raise SystemExit("Il manque le token dans le lien.")
     return base.rstrip("/"), token
 
 
@@ -114,18 +114,18 @@ def summarise(report: dict):
 
 
 def ask_yes(prompt: str) -> bool:
-    answer = input(f"\n{prompt} [yes/no]: ").strip().lower()
-    return answer in ("y", "yes", "o", "oui")
+    answer = input(f"\n{prompt} [oui/non] : ").strip().lower()
+    return answer in ("o", "oui", "y", "yes")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run a G6 Guard verification scan")
-    parser.add_argument("link", help="the verification link you were sent")
-    parser.add_argument("--name", help="display name shown to the person who asked")
+    parser = argparse.ArgumentParser(description="Lancer un scan de vérification G6 Guard")
+    parser.add_argument("link", help="le lien de vérification qu'on t'a envoyé")
+    parser.add_argument("--name", help="pseudo affiché à la personne qui a demandé")
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="scan and write the report to disk, never upload it",
+        help="scanner et écrire le rapport sur le disque, sans jamais l'envoyer",
     )
     args = parser.parse_args()
 
@@ -134,50 +134,50 @@ def main():
     try:
         manifest = http_get_json(f"{base_url}/api/verify/{token}")
     except urllib.error.HTTPError as exc:
-        raise SystemExit(f"The link was rejected by the server ({exc.code}). Ask for a fresh one.")
+        raise SystemExit(f"Lien refusé par le serveur ({exc.code}). Demande-en un nouveau.")
     except urllib.error.URLError as exc:
-        raise SystemExit(f"Could not reach {base_url}: {exc.reason}")
+        raise SystemExit(f"Impossible de joindre {base_url} : {exc.reason}")
 
     if manifest.get("status") == "expired":
-        raise SystemExit("This verification link has expired. Ask for a new one.")
+        raise SystemExit("Ce lien a expiré. Demande-en un nouveau.")
     if manifest.get("status") == "completed":
-        raise SystemExit("This link has already been used. Ask for a new one.")
+        raise SystemExit("Ce lien a déjà été utilisé. Demande-en un nouveau.")
     if manifest.get("status") == "revoked":
-        raise SystemExit("This link was revoked by the person who created it.")
+        raise SystemExit("Ce lien a été annulé par la personne qui l'a créé.")
 
     print_consent(manifest, base_url)
 
-    if not args.dry_run and not ask_yes("Run the scan?"):
-        raise SystemExit("Cancelled. Nothing was scanned, nothing was sent.")
+    if not args.dry_run and not ask_yes("Lancer le scan ?"):
+        raise SystemExit("Annulé. Rien n'a été scanné, rien n'a été envoyé.")
 
-    display_name = args.name or input("\nDisplay name to show with the result: ").strip() or "anonymous"
+    display_name = args.name or input("\nPseudo à afficher avec le résultat : ").strip() or "anonyme"
 
-    print("\nScanning... (this takes a few seconds)")
+    print("\nScan en cours... (quelques secondes)")
     report = build_report("remote")
     report["client_label"] = display_name
 
     summarise(report)
     path = save_report(report)
-    print(f"\nFull report written to:\n  {path}")
+    print(f"\nRapport complet écrit dans :\n  {path}")
 
     if args.dry_run:
-        print("\n--dry-run: nothing was uploaded.")
+        print("\n--dry-run : rien n'a été envoyé.")
         return 0
 
-    if not ask_yes("Send this report now?"):
-        print("Not sent. The file above stays on your disk; delete it whenever you want.")
+    if not ask_yes("Envoyer ce rapport maintenant ?"):
+        print("Non envoyé. Le fichier ci-dessus reste sur ton disque, supprime-le quand tu veux.")
         return 0
 
     try:
         result = http_post_json(f"{base_url}/api/verify/{token}/submit", report)
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", "replace")
-        raise SystemExit(f"Upload refused ({exc.code}): {detail}")
+        raise SystemExit(f"Envoi refusé ({exc.code}) : {detail}")
     except urllib.error.URLError as exc:
-        raise SystemExit(f"Could not reach {base_url}: {exc.reason}")
+        raise SystemExit(f"Impossible de joindre {base_url} : {exc.reason}")
 
-    print(f"\nSent. Result: {result.get('risk_score')}/100 - {result.get('risk_label')}")
-    print("This link is now used up and cannot be submitted again.")
+    print(f"\nEnvoyé. Verdict : {result.get('verdict', '?')} ({result.get('risk_score')}/100)")
+    print("Ce lien est maintenant consommé et ne peut plus être réutilisé.")
     return 0
 
 

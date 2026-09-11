@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import functools
 import os
 import secrets
 import sys
@@ -8,15 +9,87 @@ from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from flask import Flask, abort, jsonify, render_template, request, redirect, url_for
+from flask import (
+    Flask, abort, jsonify, render_template, request, redirect, session, url_for,
+)
+from werkzeug.middleware.proxy_fix import ProxyFix
 
-from g6_anticheat import db, profile as profiles
+from g6_anticheat import auth, db, profile as profiles
 from g6_anticheat.engine import persist_report, run_scan
 from g6_anticheat.submission import InvalidSubmission, clean_report
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024  # a report is a few KB
+
+# Sessions. A generated key is fine for local use, but on a deployment it
+# must be set, otherwise every restart logs everyone out.
+app.secret_key = os.environ.get("G6_SECRET_KEY") or secrets.token_hex(32)
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=bool(os.environ.get("G6_HTTPS", "1") == "1"
+                               and os.environ.get("G6_LOCAL") != "1"),
+)
+
+# Behind a host's proxy, so url_for/request.url_root produce the real
+# https:// address instead of http://internal-container.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
 _scan_lock = threading.Lock()
+
+
+def login_required(view):
+    """Protect owner-only pages. No-op when no accounts are configured."""
+    @functools.wraps(view)
+    def wrapped(*args, **kwargs):
+        if not auth.auth_configured():
+            return view(*args, **kwargs)
+        if not session.get("user"):
+            return redirect(url_for("login", next=request.path))
+        return view(*args, **kwargs)
+    return wrapped
+
+
+@app.context_processor
+def inject_globals():
+    return {
+        "current_user": session.get("user"),
+        "auth_configured": auth.auth_configured(),
+    }
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if not auth.auth_configured():
+        return redirect(url_for("index"))
+
+    error = None
+    if request.method == "POST":
+        ip = request.remote_addr or "-"
+        locked = auth.is_locked_out(ip)
+        if locked:
+            error = f"Trop de tentatives. Réessaie dans {locked // 60 + 1} minute(s)."
+        else:
+            username = (request.form.get("username") or "").strip()
+            password = request.form.get("password") or ""
+            if auth.verify(username, password, ip):
+                session.clear()
+                session["user"] = username
+                session.permanent = True
+                target = request.args.get("next") or url_for("index")
+                # Only allow relative redirects - never bounce to another site.
+                if not target.startswith("/") or target.startswith("//"):
+                    target = url_for("index")
+                return redirect(target)
+            error = "Identifiant ou mot de passe incorrect."
+
+    return render_template("login.html", error=error)
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
 
 SEVERITY_ORDER = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]
 DEFAULT_LINK_HOURS = 24
@@ -54,6 +127,7 @@ def _is_expired(verification) -> bool:
 
 
 @app.route("/")
+@login_required
 def index():
     db.init_db()
     return render_template(
@@ -66,6 +140,7 @@ def index():
 
 
 @app.route("/scan/<int:scan_id>")
+@login_required
 def scan_detail(scan_id):
     db.init_db()
     scan = db.get_scan(scan_id)
@@ -80,6 +155,7 @@ def scan_detail(scan_id):
 
 
 @app.route("/scan/new")
+@login_required
 def trigger_and_redirect():
     if _scan_lock.acquire(blocking=False):
         try:
@@ -94,6 +170,7 @@ def trigger_and_redirect():
 
 
 @app.route("/verifications/new", methods=["POST"])
+@login_required
 def create_verification():
     db.init_db()
     label = (request.form.get("label") or "").strip()[:80] or None
@@ -108,6 +185,7 @@ def create_verification():
 
 
 @app.route("/verification/<int:verification_id>")
+@login_required
 def verification_detail(verification_id):
     db.init_db()
     verification = db.get_verification(verification_id)
@@ -132,6 +210,7 @@ def verification_detail(verification_id):
 
 
 @app.route("/verification/<int:verification_id>/revoke", methods=["POST"])
+@login_required
 def revoke_verification(verification_id):
     db.revoke_verification(verification_id)
     return redirect(url_for("verification_detail", verification_id=verification_id))
@@ -199,6 +278,7 @@ def verify_submit(token):
 
     return jsonify({
         "ok": True,
+        "verdict": report["verdict"],
         "risk_score": report["risk_score"],
         "risk_label": report["risk_label"],
         "findings_sent": len(report["findings"]),

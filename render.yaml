@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: g6-guard
+    runtime: python
+    # "starter" is required for the persistent disk below. On the free plan,
+    # remove the whole `disk:` block and the G6_DB_PATH variable - everything
+    # still works, but the database is wiped on every restart/redeploy.
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    disk:
+      name: g6-data
+      mountPath: /var/g6data
+      sizeGB: 1
+    envVars:
+      # Keeps the database on the persistent disk, away from the signature
+      # files that ship in data/.
+      - key: G6_DB_PATH
+        value: /var/g6data/g6guard.sqlite3
+      # Set these two yourself in the Render dashboard (never commit them):
+      #   python manage.py secret-key
+      #   python manage.py hash-password
+      - key: G6_SECRET_KEY
+        sync: false
+      - key: G6_USERS
+        sync: false
+      - key: PYTHON_VERSION
+        value: "3.11"

@@ -130,17 +130,18 @@ navigateur, jamais.
 
 ### Rendre ton dashboard joignable
 
-Par défaut le dashboard écoute sur `127.0.0.1`, donc le lien généré ne marche
-que chez toi. Pour qu'un ami puisse l'ouvrir, passe par un tunnel (cloudflared,
-ngrok...) et indique l'adresse publique :
+Deux options : un tunnel temporaire depuis ton PC, ou un hébergement permanent
+(voir la section « Mettre le dashboard en ligne » plus bas).
+
+Pour un tunnel rapide (cloudflared, ngrok...) :
 
 ```powershell
 set G6_PUBLIC_URL=https://ton-tunnel.trycloudflare.com
 python dashboard\app.py
 ```
 
-Le dashboard n'a **pas de système de login** : n'expose pas le port directement
-sur Internet, préfère un tunnel que tu coupes après usage.
+Une fois hébergé en ligne, `G6_PUBLIC_URL` devient inutile : l'adresse réelle
+est détectée automatiquement.
 
 ### Ce que ça ne garantit pas
 
@@ -188,6 +189,75 @@ utilisateur standard.
 
 Pour un scan automatique récurrent, ajoute une tâche planifiée Windows qui
 lance `python run_scan.py` (Planificateur de tâches -> créer une tâche basique).
+
+## Mettre le dashboard en ligne
+
+### Pourquoi pas Netlify
+
+Netlify héberge des sites statiques et des fonctions serverless en JS/Go. Il
+n'exécute pas de serveur Python, et n'a pas de disque persistant pour la base
+SQLite. Y déployer ce projet imposerait de réécrire tout le backend en
+JavaScript et d'externaliser la base. Les hébergeurs ci-dessous déploient le
+projet tel quel depuis GitHub.
+
+### 1. Créer les comptes (obligatoire)
+
+Le dashboard expose tous les résultats de scan. En ligne sans authentification,
+n'importe qui trouvant l'URL voit tout et peut générer des liens. `wsgi.py`
+**refuse donc de démarrer** si aucun compte n'est configuré.
+
+Sur ton PC, pour toi et ton collègue :
+
+```powershell
+python manage.py hash-password     # une fois par personne
+python manage.py secret-key
+```
+
+Tu obtiens deux valeurs à mettre dans les variables d'environnement de
+l'hébergeur (jamais dans le dépôt Git) :
+
+```
+G6_USERS={"noam": "pbkdf2:sha256:...", "collegue": "pbkdf2:sha256:..."}
+G6_SECRET_KEY=<la valeur générée>
+```
+
+### 2. Déployer sur Render
+
+Le fichier `render.yaml` est déjà configuré.
+
+1. Pousse ce dépôt sur GitHub.
+2. Sur [render.com](https://render.com) : **New > Blueprint**, sélectionne le dépôt.
+3. Render lit `render.yaml`. Renseigne `G6_USERS` et `G6_SECRET_KEY` quand il
+   les demande (ils sont marqués `sync: false`, donc jamais versionnés).
+4. Tu obtiens une URL `https://g6-guard-xxxx.onrender.com`. C'est ton dashboard.
+
+**Sur la persistance :** `render.yaml` demande un disque de 1 Go monté sur
+`/var/g6data`, ce qui nécessite un plan payant (~7 $/mois). Sur le plan
+gratuit, supprime le bloc `disk:` et la variable `G6_DB_PATH` : tout fonctionne,
+mais la base est effacée à chaque redémarrage — tu perds l'historique des scans
+(les liens en cours aussi). Le plan gratuit met aussi le service en veille après
+inactivité, donc le premier chargement prend ~30 s.
+
+Le disque est monté sur `/var/g6data` et **pas** sur `data/`, exprès : monter un
+volume sur `data/` masquerait les fichiers de signatures livrés avec le code.
+
+### Autres hébergeurs
+
+- **Fly.io** — volume persistant dans l'offre gratuite, mais demande `flyctl` et un Dockerfile.
+- **PythonAnywhere** — disque persistant gratuit, configuration via interface web plutôt que git push.
+- **Un VPS** — `gunicorn` derrière nginx, contrôle total.
+
+Le `Procfile` fourni fonctionne sur tout hébergeur qui le lit (Railway, Heroku...).
+
+### Variables d'environnement
+
+| Variable | Rôle |
+|---|---|
+| `G6_USERS` | **Obligatoire en ligne.** Comptes, en JSON |
+| `G6_SECRET_KEY` | Signature des sessions. Sans elle, chaque redémarrage déconnecte tout le monde |
+| `G6_DB_PATH` | Emplacement de la base (à mettre sur le volume persistant) |
+| `G6_PUBLIC_URL` | Force l'adresse des liens générés. Inutile si hébergé |
+| `G6_LOCAL=1` | Autorise les cookies en HTTP, pour tester en local |
 
 ## Étendre les signatures
 
