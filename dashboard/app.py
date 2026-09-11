@@ -52,9 +52,17 @@ def login_required(view):
 
 @app.context_processor
 def inject_globals():
+    pending = 0
+    if session.get("user") or not auth.auth_configured():
+        try:
+            pending = db.stats()["pending"]
+        except Exception:
+            pending = 0
     return {
         "current_user": session.get("user"),
         "auth_configured": auth.auth_configured(),
+        "nav_pending": pending,
+        "active": "index",
     }
 
 
@@ -224,6 +232,8 @@ def index():
         "index.html",
         scans=db.list_scans(limit=25),
         verifications=db.list_verifications(limit=25),
+        stats=db.stats(),
+        scanner_ready=_scanner_path() is not None,
         base_url=_public_base_url(),
         base_url_is_local="127.0.0.1" in _public_base_url() or "localhost" in _public_base_url(),
     )

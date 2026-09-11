@@ -1,96 +1,88 @@
-{% extends "base.html" %}
-{% block title %}Vérification FiveM &middot; G6 Guard{% endblock %}
+{% extends "public_base.html" %}
+{% block title %}Vérification FiveM · G6 Guard{% endblock %}
 {% block content %}
 
 {% if expired %}
-  <div class="state-card state-warn">
+  <div class="state state-warn">
     <h1>Ce lien a expiré</h1>
     <p>Demande un nouveau lien à la personne qui te l'a envoyé.</p>
   </div>
 {% elif v.status == 'completed' %}
-  <div class="state-card state-ok">
+  <div class="state state-ok">
     <h1>Vérification terminée</h1>
-    <p>Le résultat a bien été transmis. Il n'y a plus rien à faire.</p>
+    <p>Le résultat a été transmis. Il n'y a plus rien à faire.</p>
   </div>
 {% elif v.status == 'revoked' %}
-  <div class="state-card state-warn">
-    <h1>Ce lien a été annulé</h1>
+  <div class="state state-warn">
+    <h1>Lien annulé</h1>
     <p>La personne qui l'a créé l'a désactivé.</p>
   </div>
 {% else %}
 
-<section class="verify-hero">
-  <p class="kicker">Demande de vérification</p>
-  <h1>{{ v.label or "Quelqu'un" }} te demande de vérifier ce PC</h1>
-  <p class="verify-sub">
-    Un contrôle ponctuel pour les cheats FiveM. Ça prend une minute, et tu vois
-    tout ce qui sera envoyé avant que ça parte.
-  </p>
-</section>
+<h1>{{ v.label or "Quelqu'un" }} te demande de vérifier ce PC</h1>
+<p class="pub-sub">
+  Un contrôle ponctuel pour les cheats FiveM. Deux minutes, rien à installer.
+</p>
 
-<div class="privacy-banner">
+<div class="trust">
   <h2>{{ privacy_headline }}</h2>
   <p>{{ privacy_summary }}</p>
 </div>
 
 {% if v.note %}
-<div class="note-card">
-  <span class="note-label">Son message</span>
+<div class="note-box">
+  <span class="lbl">SON MESSAGE</span>
   <p>{{ v.note }}</p>
 </div>
 {% endif %}
 
-<section class="dl-section">
+<div class="dl">
   {% if scanner_ready %}
-    <a class="dl-button" href="{{ url_for('download_scanner', token=token) }}">
-      <span class="dl-icon" aria-hidden="true">&#8595;</span>
-      <span class="dl-text">
-        <strong>Télécharger le scan</strong>
-        <small>G6Scan.exe &middot; Windows &middot; rien à installer</small>
+    <a class="dl-btn" href="{{ url_for('download_scanner', token=token) }}">
+      <span class="dl-ico" aria-hidden="true">↓</span>
+      <span class="dl-txt">
+        <b>Télécharger le scan</b>
+        <span>G6Scan.exe · Windows · aucune installation</span>
       </span>
     </a>
     <ol class="dl-steps">
       <li>Télécharge le fichier.</li>
-      <li>Double-clique dessus. Une fenêtre s'ouvre et t'explique tout.</li>
-      <li>Clique sur <strong>Lancer le scan</strong>, puis sur <strong>Envoyer</strong> si tu es d'accord.</li>
+      <li>Clic droit dessus → <b>Exécuter en tant qu'administrateur</b>.</li>
+      <li>Lis ce que le programme annonce, puis clique sur <b>Accepter et lancer le scan</b>.</li>
     </ol>
-    <p class="dl-note">
-      Windows peut afficher un avertissement « éditeur inconnu » : c'est normal
-      pour un programme qui n'est pas signé par un éditeur commercial. Clique sur
-      <em>Informations complémentaires</em> puis <em>Exécuter quand même</em>.
-    </p>
   {% else %}
-    <div class="note-card">
-      <span class="note-label">Scanner pas encore disponible</span>
-      <p>
-        Le programme de scan n'a pas encore été mis en ligne sur ce dashboard.
-        Préviens la personne qui t'a envoyé ce lien — elle doit déposer
-        <code>G6Scan.exe</code> dans le dossier <code>bin/</code>.
-      </p>
+    <div class="alert alert-warn" style="margin:0">
+      <b>Le programme n'est pas encore disponible.</b> Préviens la personne qui t'a
+      envoyé ce lien : elle doit encore le mettre en ligne.
     </div>
   {% endif %}
-</section>
+</div>
 
-<section class="cols">
-  <div class="col col-ok">
-    <h3>Ce qui est regardé</h3>
-    <ul>
-      {% for item in collects %}<li>{{ item }}</li>{% endfor %}
-    </ul>
+<div class="two">
+  <div class="pane pane-yes">
+    <h3>Ce qui est lu</h3>
+    <ul>{% for item in collects %}<li>{{ item }}</li>{% endfor %}</ul>
   </div>
-  <div class="col col-no">
+  <div class="pane pane-no">
     <h3>Ce qui n'est jamais touché</h3>
-    <ul>
-      {% for item in never_collects %}<li>{{ item }}</li>{% endfor %}
-    </ul>
+    <ul>{% for item in never_collects %}<li>{{ item }}</li>{% endfor %}</ul>
   </div>
-</section>
+</div>
 
-<details class="adv">
-  <summary>Tu préfères lancer le scan toi-même depuis le code source ?</summary>
+<p class="fineprint">
+  Le résultat part directement à la personne qui a demandé la vérification : il ne
+  s'affiche pas chez toi et n'est pas enregistré sur ce PC. Si tu pouvais le lire
+  d'abord, il suffirait de ne pas l'envoyer — et la vérification ne vaudrait rien.
+  Windows affichera un avertissement « éditeur inconnu » : c'est normal pour un
+  programme qui n'est pas signé par un éditeur commercial, clique sur
+  <em>Informations complémentaires</em> puis <em>Exécuter quand même</em>.
+</p>
+
+<details class="more">
+  <summary>Tu préfères lancer le scan depuis le code source ?</summary>
   <p>
-    Si tu ne veux pas exécuter un binaire, tu peux faire tourner exactement le
-    même scan depuis les sources, avec Python 3.10+ :
+    Si tu ne veux pas exécuter un programme compilé, le même scan tourne depuis les
+    sources avec Python 3.10 ou plus. Le code est public.
   </p>
   <pre class="cmd">pip install -r requirements.txt
 python verify_client.py {{ link }}</pre>

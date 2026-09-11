@@ -1,31 +1,46 @@
 {% extends "base.html" %}
 {% import "_results.html" as results %}
+
+{% block heading %}
+  {% if scan.source == 'remote' %}{{ scan.client_label }}{% else %}Cette machine{% endif %}
+{% endblock %}
+
+{% block topline_actions %}
+<a class="btn btn-line" href="{{ url_for('index') }}">Retour</a>
+{% endblock %}
+
 {% block content %}
 
-<a class="link back" href="{{ url_for('index') }}">&larr; Retour</a>
-
-<section class="hero">
-  <div>
-    <p class="kicker">Scan #{{ scan.id }}</p>
-    <h1>
-      {% if scan.source == 'remote' %}{{ scan.client_label }}{% else %}Ce PC{% endif %}
-    </h1>
-    <p class="muted">{{ scan.started_at[:16]|replace("T", " ") }}</p>
-  </div>
-</section>
+<div class="meta-line">
+  <span>Scan <b>#{{ scan.id }}</b></span>
+  <span>Le <b>{{ scan.started_at[:16]|replace("T", " ") }}</b></span>
+  <span>Origine
+    <b>{% if scan.source == 'remote' %}scan à distance{% else %}machine locale{% endif %}</b>
+  </span>
+</div>
 
 {% if scan.verdict %}{{ results.verdict_block(scan) }}{% endif %}
 
-{{ results.metrics(scan, counts, findings) }}
+{{ results.counts_row(scan, counts, findings) }}
 
-<h2>Détail des résultats — {{ findings|length }}</h2>
-{% if not findings %}
-  <p class="empty">Aucun élément relevé.</p>
-{% else %}
-  {{ results.findings_groups(groups) }}
-{% endif %}
+<section class="sec">
+  <div class="sec-head">
+    <h2>Détail des détections</h2>
+    <span class="count">{{ findings|length }}</span>
+  </div>
+  {% if not findings %}
+    <div class="blank">
+      <h3>Aucune détection</h3>
+      <p>Aucun élément suspect relevé.</p>
+    </div>
+  {% else %}
+    {{ results.findings_groups(groups) }}
+  {% endif %}
+</section>
 
-<h2>Vérifications effectuées</h2>
-{{ results.checks_table(statuses, check_labels) }}
+<section class="sec">
+  <div class="sec-head"><h2>Vérifications effectuées</h2></div>
+  {{ results.checks_table(statuses, check_labels) }}
+</section>
 
 {% endblock %}

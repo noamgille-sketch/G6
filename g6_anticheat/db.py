@@ -213,6 +213,23 @@ def get_check_statuses(scan_id: int):
         return [dict(r) for r in rows]
 
 
+def stats() -> dict:
+    """Headline numbers for the console. Cheap enough to run on every load."""
+    with get_connection() as conn:
+        def one(sql, args=()):
+            row = conn.execute(sql, args).fetchone()
+            return (row[0] if row else 0) or 0
+
+        return {
+            "pending": one("SELECT COUNT(*) FROM verifications WHERE status = 'pending'"),
+            "completed": one("SELECT COUNT(*) FROM verifications WHERE status = 'completed'"),
+            "flagged": one("SELECT COUNT(*) FROM scans WHERE verdict = 'CHEAT DETECTE'"),
+            "suspect": one("SELECT COUNT(*) FROM scans WHERE verdict = 'SUSPECT'"),
+            "machines": one("SELECT COUNT(DISTINCT machine_id) FROM scans WHERE machine_id IS NOT NULL"),
+            "scans": one("SELECT COUNT(*) FROM scans"),
+        }
+
+
 def create_verification(token: str, label: str | None, note: str | None, expires_at: str | None) -> int:
     with get_connection() as conn:
         cur = conn.execute(

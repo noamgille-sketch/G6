@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,32 +7,59 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<header class="topbar">
-  <a class="brand" href="{{ url_for('index') }}">
-    <span class="brand-mark">G6</span> Guard
-  </a>
-  <span class="tagline">vérification FiveM</span>
-  {% if current_user %}
-  <span class="topbar-right">
-    {{ current_user }}
-    <form method="post" action="{{ url_for('logout') }}" class="logout-form">
-      <button type="submit" class="logout-btn">déconnexion</button>
-    </form>
-  </span>
-  {% endif %}
-</header>
 
-{% if not auth_configured %}
-<div class="no-auth-warning">
-  Aucun compte configuré : ce dashboard est ouvert à tous. Ne le mets pas en ligne
-  sans définir <code>G6_USERS</code> (voir README).
+<div class="shell">
+  <aside class="rail">
+    <div class="rail-brand">
+      <span class="logo">G6</span>
+      <span>
+        <span class="rail-name">Guard</span><br>
+        <span class="rail-sub">anticheat FiveM</span>
+      </span>
+    </div>
+
+    <nav class="nav">
+      <span class="nav-label">Console</span>
+      <a href="{{ url_for('index') }}" class="{{ 'on' if active == 'index' }}">
+        Vérifications
+        {% if nav_pending %}<span class="badge-n">{{ nav_pending }}</span>{% endif %}
+      </a>
+      <a href="{{ url_for('index') }}#scans" class="{{ 'on' if active == 'scans' }}">Scans</a>
+    </nav>
+
+    <div class="rail-foot">
+      {% if current_user %}
+        <span class="avatar">{{ current_user[0]|upper }}</span>
+        <span class="rail-user">{{ current_user }}</span>
+        <form method="post" action="{{ url_for('logout') }}" class="logout-form">
+          <button type="submit" class="logout-btn">Quitter</button>
+        </form>
+      {% else %}
+        <span class="avatar">?</span>
+        <span class="rail-user">Session ouverte</span>
+      {% endif %}
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topline">
+      <h1>{% block heading %}{% endblock %}</h1>
+      <span class="spacer"></span>
+      {% block topline_actions %}{% endblock %}
+    </header>
+
+    {% if not auth_configured %}
+    <div class="warn-strip">
+      Aucun compte n'est configuré : cette console est accessible à tous.
+      Définis <code>G6_ACCOUNTS</code> avant de la laisser en ligne.
+    </div>
+    {% endif %}
+
+    <div class="content">
+      {% block content %}{% endblock %}
+    </div>
+  </div>
 </div>
-{% endif %}
-<main class="container">
-  {% block content %}{% endblock %}
-</main>
-<footer class="footer">
-  Scanner heuristique en mode utilisateur. Ne remplace pas un anticheat kernel-mode.
-</footer>
+
 </body>
 </html>

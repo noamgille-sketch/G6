@@ -1,106 +1,151 @@
 {% extends "base.html" %}
+{% block heading %}Vérifications{% endblock %}
+
 {% block content %}
 
-<section class="hero">
-  <div>
-    <p class="kicker">Vérifications</p>
-    <h1>Envoie un lien, récupère un verdict</h1>
-    <p class="muted">La personne télécharge le scan, le lance, et le résultat arrive ici.</p>
+<div class="stats">
+  <div class="stat">
+    <div class="k">Liens en attente</div>
+    <div class="v {{ 'v-brand' if stats.pending else 'v-zero' }}">{{ stats.pending }}</div>
   </div>
-</section>
+  <div class="stat">
+    <div class="k">Scans reçus</div>
+    <div class="v {{ 'v-zero' if not stats.completed }}">{{ stats.completed }}</div>
+  </div>
+  <div class="stat">
+    <div class="k">Cheats détectés</div>
+    <div class="v {{ 'v-crit' if stats.flagged else 'v-zero' }}">{{ stats.flagged }}</div>
+  </div>
+  <div class="stat">
+    <div class="k">À vérifier</div>
+    <div class="v {{ 'v-med' if stats.suspect else 'v-zero' }}">{{ stats.suspect }}</div>
+  </div>
+  <div class="stat">
+    <div class="k">Machines vues</div>
+    <div class="v {{ 'v-zero' if not stats.machines }}">{{ stats.machines }}</div>
+  </div>
+</div>
 
 {% if base_url_is_local %}
-<p class="notice notice-warn" style="margin-bottom:18px">
-  Tes liens pointent vers <code>{{ base_url }}</code>, qui ne fonctionne que sur
-  cette machine. Pour en envoyer un à quelqu'un, héberge le dashboard ou passe
-  par un tunnel, puis renseigne <code>G6_PUBLIC_URL</code>.
-</p>
+<div class="alert alert-warn">
+  <b>Tes liens pointent vers {{ base_url }}</b> — ils ne fonctionnent que sur cette
+  machine. Héberge la console, ou renseigne <code>G6_PUBLIC_URL</code>.
+</div>
 {% endif %}
 
-<form class="create-form" method="post" action="{{ url_for('create_verification') }}">
-  <input type="text" id="label" name="label" placeholder="Pour qui ? (ex. Kevin)" maxlength="80">
-  <input type="text" id="note" name="note" placeholder="Message affiché (optionnel)" maxlength="300">
-  <input type="number" id="hours" name="hours" value="24" min="1" max="336" title="Heures avant expiration">
-  <button class="btn btn-primary" type="submit">Créer le lien</button>
+{% if not scanner_ready %}
+<div class="alert alert-warn">
+  <b>G6Scan.exe n'est pas en place.</b> Les personnes qui ouvriront tes liens verront
+  la page mais ne pourront rien télécharger. Publie une release sur GitHub : le
+  programme sera compilé puis récupéré automatiquement au prochain déploiement.
+</div>
+{% endif %}
+
+<form class="newlink" method="post" action="{{ url_for('create_verification') }}">
+  <div class="fld">
+    <label for="label">Pour qui</label>
+    <input type="text" id="label" name="label" placeholder="Kevin" maxlength="80" required>
+  </div>
+  <div class="fld">
+    <label for="note">Message affiché à la personne</label>
+    <input type="text" id="note" name="note" placeholder="Vérif avant la soirée RP" maxlength="300">
+  </div>
+  <div class="fld">
+    <label for="hours">Validité (h)</label>
+    <input type="number" id="hours" name="hours" value="24" min="1" max="336">
+  </div>
+  <button class="btn btn-brand" type="submit">Créer le lien</button>
 </form>
 
-{% if not verifications %}
-  <p class="empty">Aucun lien pour l'instant. Crée-en un ci-dessus.</p>
-{% else %}
-<div class="table-wrap">
-  <table class="scan-table">
-    <thead>
-      <tr><th>Pour</th><th>Créée</th><th>État</th><th>Verdict</th><th></th></tr>
-    </thead>
-    <tbody>
-      {% for v in verifications %}
-      <tr>
-        <td><strong>{{ v.label or "sans nom" }}</strong></td>
-        <td class="num muted">{{ v.created_at[:16]|replace("T", " ") }}</td>
-        <td>
-          <span class="status status-{{ v.status }}">
-            {{ {"pending": "en attente", "completed": "terminée", "revoked": "annulée"}.get(v.status, v.status) }}
-          </span>
-        </td>
-        <td>
-          {% if v.verdict %}
-            <span class="verdict-chip verdict-{{ v.verdict|lower|replace(' ', '-') }}">{{ v.verdict }}</span>
-            {% if v.detected_cheats %}
-              <div class="muted" style="font-size:.76rem;margin-top:5px">{{ v.detected_cheats }}</div>
-            {% endif %}
-          {% else %}
-            <span class="muted">—</span>
-          {% endif %}
-        </td>
-        <td><a class="link" href="{{ url_for('verification_detail', verification_id=v.id) }}">Ouvrir &rarr;</a></td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-{% endif %}
-
-<section class="hero" style="margin-top:44px">
-  <div>
-    <p class="kicker">Ta machine</p>
-    <h1>Scans de ce PC</h1>
+<section class="sec">
+  <div class="sec-head">
+    <h2>Liens</h2>
+    <span class="count">{{ verifications|length }}</span>
   </div>
-  <a class="btn btn-primary" href="{{ url_for('trigger_and_redirect') }}">Scanner ce PC</a>
+
+  {% if not verifications %}
+    <div class="blank">
+      <h3>Aucun lien pour l'instant</h3>
+      <p>Crée un lien ci-dessus, envoie-le à la personne à vérifier. Son résultat
+         apparaîtra ici dès qu'elle aura lancé le scan.</p>
+    </div>
+  {% else %}
+  <div class="tbl-wrap"><div class="tbl-scroll">
+    <table class="data">
+      <thead>
+        <tr><th>Pour</th><th>Créé</th><th>État</th><th>Verdict</th><th>Cheats</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for v in verifications %}
+        <tr>
+          <td><strong>{{ v.label or "sans nom" }}</strong></td>
+          <td class="mono dim">{{ v.created_at[:16]|replace("T", " ") }}</td>
+          <td>
+            <span class="chip chip-{{ v.status }}">
+              {{ {"pending": "en attente", "completed": "reçu", "revoked": "annulé"}.get(v.status, v.status) }}
+            </span>
+          </td>
+          <td>
+            {% if v.verdict %}
+              <span class="chip chip-{{ v.verdict|lower|replace(' ', '-') }}">{{ v.verdict }}</span>
+            {% else %}
+              <span class="dim">—</span>
+            {% endif %}
+          </td>
+          <td class="dim">{{ v.detected_cheats or "—" }}</td>
+          <td><a class="row-link" href="{{ url_for('verification_detail', verification_id=v.id) }}">Ouvrir</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div></div>
+  {% endif %}
 </section>
 
-{% if not scans %}
-  <p class="empty">Aucun scan pour l'instant.</p>
-{% else %}
-<div class="table-wrap">
-  <table class="scan-table">
-    <thead>
-      <tr><th>#</th><th>Date</th><th>Source</th><th>Verdict</th><th></th></tr>
-    </thead>
-    <tbody>
-      {% for s in scans %}
-      <tr>
-        <td class="num muted">{{ s.id }}</td>
-        <td class="num muted">{{ s.started_at[:16]|replace("T", " ") }}</td>
-        <td>
-          {% if s.source == 'remote' %}
-            <span class="status status-remote">{{ s.client_label or "à distance" }}</span>
-          {% else %}
-            ce PC
-          {% endif %}
-        </td>
-        <td>
-          {% if s.verdict %}
-            <span class="verdict-chip verdict-{{ s.verdict|lower|replace(' ', '-') }}">{{ s.verdict }}</span>
-          {% else %}
-            <span class="muted">—</span>
-          {% endif %}
-        </td>
-        <td><a class="link" href="{{ url_for('scan_detail', scan_id=s.id) }}">Ouvrir &rarr;</a></td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-{% endif %}
+<section class="sec" id="scans">
+  <div class="sec-head">
+    <h2>Scans</h2>
+    <span class="count">{{ scans|length }}</span>
+    <span class="spacer"></span>
+    <a class="btn btn-line" href="{{ url_for('trigger_and_redirect') }}">Scanner cette machine</a>
+  </div>
+
+  {% if not scans %}
+    <div class="blank">
+      <h3>Aucun scan enregistré</h3>
+      <p>Les scans reçus via tes liens apparaîtront ici, avec le détail de chaque détection.</p>
+    </div>
+  {% else %}
+  <div class="tbl-wrap"><div class="tbl-scroll">
+    <table class="data">
+      <thead>
+        <tr><th>#</th><th>Date</th><th>Source</th><th>Verdict</th><th>Score</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for s in scans %}
+        <tr>
+          <td class="mono dim">{{ s.id }}</td>
+          <td class="mono dim">{{ s.started_at[:16]|replace("T", " ") }}</td>
+          <td>
+            {% if s.source == 'remote' %}
+              <span class="chip chip-remote">{{ s.client_label or "à distance" }}</span>
+            {% else %}
+              <span class="chip chip-neutral">cette machine</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.verdict %}
+              <span class="chip chip-{{ s.verdict|lower|replace(' ', '-') }}">{{ s.verdict }}</span>
+            {% else %}<span class="dim">—</span>{% endif %}
+          </td>
+          <td class="mono">{{ s.risk_score if s.risk_score is not none else "—" }}</td>
+          <td><a class="row-link" href="{{ url_for('scan_detail', scan_id=s.id) }}">Détail</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div></div>
+  {% endif %}
+</section>
 
 {% endblock %}

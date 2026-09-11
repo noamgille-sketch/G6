@@ -1,20 +1,39 @@
-{% extends "base.html" %}
-{% block title %}Connexion &middot; G6 Guard{% endblock %}
-{% block content %}
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connexion · G6 Guard</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
 
-<div class="login-box">
-  <h1>Connexion</h1>
-  <p class="muted">Dashboard privé. Seuls les comptes configurés peuvent entrer.</p>
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <span class="logo">G6</span>
+      <span>
+        <span class="rail-name">Guard</span><br>
+        <span class="rail-sub">anticheat FiveM</span>
+      </span>
+    </div>
 
-  {% if error %}
-    <p class="notice notice-warn">{{ error }}</p>
-  {% endif %}
+    <h1>Connexion</h1>
+    <p class="sub">Console privée. Accès réservé aux comptes configurés.</p>
 
-  <form method="post">
-    <input type="text" name="username" placeholder="Identifiant" autocomplete="username" required autofocus>
-    <input type="password" name="password" placeholder="Mot de passe" autocomplete="current-password" required>
-    <button class="btn btn-primary" type="submit">Se connecter</button>
-  </form>
+    {% if error %}
+      <div class="alert alert-warn">{{ error }}</div>
+    {% endif %}
+
+    <form method="post">
+      <input type="text" id="username" name="username" placeholder="Identifiant"
+             autocomplete="username" required autofocus>
+      <input type="password" id="password" name="password" placeholder="Mot de passe"
+             autocomplete="current-password" required>
+      <button class="btn btn-brand" type="submit">Se connecter</button>
+    </form>
+  </div>
 </div>
 
-{% endblock %}
+</body>
+</html>

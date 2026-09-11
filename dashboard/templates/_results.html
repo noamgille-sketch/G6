@@ -1,110 +1,105 @@
-{# Shared result rendering: verdict, metrics, grouped findings, checks run. #}
+{# Shared result rendering: verdict, grouped findings, checks run. #}
 
 {% macro verdict_block(scan) %}
-<div class="verdict verdict-{{ (scan.verdict or 'LEGIT')|lower|replace(' ', '-') }}">
-  <div class="verdict-main">{{ scan.verdict or "—" }}</div>
-  <p class="verdict-detail">{{ scan.verdict_detail }}</p>
+<div class="verdict v-{{ (scan.verdict or 'LEGIT')|lower|replace(' ', '-') }}">
+  <div class="verdict-top">
+    <span class="verdict-word">{{ scan.verdict or "—" }}</span>
+    <span class="verdict-score">{{ scan.risk_score if scan.risk_score is not none else "—" }} / 100</span>
+  </div>
+  <p class="verdict-why">{{ scan.verdict_detail }}</p>
   {% if scan.detected_cheats %}
-  <div class="cheat-list">
-    {% for cheat in scan.detected_cheats %}<span class="cheat-tag">{{ cheat }}</span>{% endfor %}
+  <div class="verdict-cheats">
+    {% for cheat in scan.detected_cheats %}<span class="cheat-pill">{{ cheat }}</span>{% endfor %}
   </div>
   {% endif %}
 </div>
 {% endmacro %}
 
 
-{% macro metrics(scan, counts, findings) %}
-<dl class="metrics">
-  <div class="metric">
-    <dt>Score</dt>
-    <dd class="{{ 'm-crit' if scan.risk_score >= 80 else 'm-med' if scan.risk_score >= 20 else 'm-low' }}">
-      {{ scan.risk_score if scan.risk_score is not none else "—" }}<span style="font-size:.8rem;color:var(--muted)">/100</span>
-    </dd>
+{% macro counts_row(scan, counts, findings) %}
+<div class="stats">
+  <div class="stat">
+    <div class="k">Critique</div>
+    <div class="v {{ 'v-crit' if counts.CRITICAL else 'v-zero' }}">{{ counts.CRITICAL }}</div>
   </div>
-  <div class="metric">
-    <dt>Critique</dt>
-    <dd class="{{ 'm-crit' if counts.CRITICAL else 'm-zero' }}">{{ counts.CRITICAL }}</dd>
+  <div class="stat">
+    <div class="k">Élevé</div>
+    <div class="v {{ 'v-crit' if counts.HIGH else 'v-zero' }}">{{ counts.HIGH }}</div>
   </div>
-  <div class="metric">
-    <dt>Élevé</dt>
-    <dd class="{{ 'm-high' if counts.HIGH else 'm-zero' }}">{{ counts.HIGH }}</dd>
+  <div class="stat">
+    <div class="k">Moyen</div>
+    <div class="v {{ 'v-med' if counts.MEDIUM else 'v-zero' }}">{{ counts.MEDIUM }}</div>
   </div>
-  <div class="metric">
-    <dt>Moyen</dt>
-    <dd class="{{ 'm-med' if counts.MEDIUM else 'm-zero' }}">{{ counts.MEDIUM }}</dd>
+  <div class="stat">
+    <div class="k">Faible / info</div>
+    <div class="v v-zero">{{ counts.LOW + counts.INFO }}</div>
   </div>
-  <div class="metric">
-    <dt>Faible / info</dt>
-    <dd class="m-zero">{{ counts.LOW + counts.INFO }}</dd>
+  <div class="stat">
+    <div class="k">Jeu lancé</div>
+    <div class="v {{ 'v-med' if scan.game_running else 'v-zero' }}" style="font-size:15px">
+      {{ "oui" if scan.game_running else "non" }}
+    </div>
   </div>
-  <div class="metric">
-    <dt>Jeu lancé</dt>
-    <dd class="sm">{{ "Oui" if scan.game_running else "Non" }}</dd>
-  </div>
-</dl>
+</div>
 {% endmacro %}
 
 
 {% macro findings_groups(groups) %}
 {% for group in groups %}
-<section class="group">
-  <div class="group-head">
-    <span class="group-title">{{ group.label }}</span>
-    <span class="group-count">{{ group.findings|length }}</span>
+<section class="grp">
+  <div class="grp-bar">
+    <span class="t">{{ group.label }}</span>
+    <span class="n">{{ group.findings|length }}</span>
   </div>
-  {% if group.desc %}<p class="group-desc">{{ group.desc }}</p>{% endif %}
-  <div class="findings">
-    {% for f in group.findings %}
-    <details class="finding sev-{{ f.severity_label|lower }}"
-             {% if f.severity_label in ("CRITICAL", "HIGH") %}open{% endif %}>
-      <summary>
-        <span class="badge badge-{{ f.severity_label|lower }}">{{ f.severity_label }}</span>
-        <span class="finding-title">{{ f.title }}</span>
-        <span class="finding-check">{{ f.check }}</span>
-      </summary>
-      <div class="finding-body">
-        <p class="finding-detail">{{ f.detail }}</p>
-        {% if f.evidence %}
-        <table class="evidence-table">
-          {% for key, value in f.evidence.items() %}
-          <tr>
-            <td class="k">{{ key }}</td>
-            <td class="v">{{ value }}</td>
-          </tr>
-          {% endfor %}
-        </table>
-        {% endif %}
-      </div>
-    </details>
-    {% endfor %}
-  </div>
+  {% if group.desc %}<p class="grp-why">{{ group.desc }}</p>{% endif %}
+
+  {% for f in group.findings %}
+  <details class="fnd s-{{ f.severity_label|lower }}"
+           {% if f.severity_label in ("CRITICAL", "HIGH") %}open{% endif %}>
+    <summary>
+      <span class="sev">{{ f.severity_label }}</span>
+      <span class="ttl">{{ f.title }}</span>
+      <span class="src">{{ f.check }}</span>
+    </summary>
+    <div class="fnd-body">
+      <p class="fnd-why">{{ f.detail }}</p>
+      {% if f.evidence %}
+      <table class="ev">
+        {% for key, value in f.evidence.items() %}
+        <tr><td class="k">{{ key }}</td><td class="v">{{ value }}</td></tr>
+        {% endfor %}
+      </table>
+      {% endif %}
+    </div>
+  </details>
+  {% endfor %}
 </section>
 {% endfor %}
 {% endmacro %}
 
 
 {% macro checks_table(statuses, check_labels) %}
-<div class="table-wrap">
-  <table class="scan-table small">
+<div class="tbl-wrap"><div class="tbl-scroll">
+  <table class="data">
     <thead>
       <tr><th>Vérification</th><th>Ce qu'elle regarde</th><th>État</th></tr>
     </thead>
     <tbody>
       {% for st in statuses %}
       <tr>
-        <td>{{ check_labels.get(st.name, (st.name, ""))[0] }}</td>
-        <td class="muted">{{ check_labels.get(st.name, ("", ""))[1] }}</td>
+        <td><strong>{{ check_labels.get(st.name, (st.name, ""))[0] }}</strong></td>
+        <td class="dim">{{ check_labels.get(st.name, ("", ""))[1] }}</td>
         <td>
           {% if st.ran %}
-            <span class="status status-completed">effectuée</span>
+            <span class="chip chip-completed">effectuée</span>
           {% else %}
-            <span class="status">ignorée</span>
-            <div class="muted" style="font-size:.76rem;margin-top:4px">{{ st.skip_reason }}</div>
+            <span class="chip chip-neutral">ignorée</span>
+            <div class="dim" style="font-size:11.5px;margin-top:4px">{{ st.skip_reason }}</div>
           {% endif %}
         </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
-</div>
+</div></div>
 {% endmacro %}

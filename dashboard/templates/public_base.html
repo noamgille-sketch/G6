@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}G6 Guard{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="pub">
+  <div class="pub-brand">
+    <span class="logo">G6</span>
+    <span>
+      <span class="rail-name">Guard</span>
+      <span class="rail-sub">&nbsp;· anticheat FiveM</span>
+    </span>
+  </div>
+
+  {% block content %}{% endblock %}
+</div>
+
+</body>
+</html>
