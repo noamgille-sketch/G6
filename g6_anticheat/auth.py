@@ -1,21 +1,28 @@
 """Authentication for the dashboard.
 
-Accounts live in the G6_USERS environment variable, as JSON mapping a
-username to a password hash:
+Accounts come from an environment variable, never from the database or a
+file in the repo: a hosted filesystem is usually wiped on redeploy, and a
+credential committed to git is a credential leaked to anyone with repo
+access.
 
-    G6_USERS={"noam": "pbkdf2:sha256:600000$...", "collegue": "..."}
+Two forms, both accepted:
 
-They are deliberately NOT stored in the database or in a file in the
-repo: on a hosted deployment the filesystem is often wiped on redeploy,
-and a hash committed to git is a hash leaked to anyone with repo access.
+    G6_ACCOUNTS=noam:motdepasse,collegue:autremotdepasse
+        Simple. Passwords are hashed when the app starts, but they sit in
+        plain text in the host's environment settings - so use a password
+        you don't use anywhere else.
 
-Generate a hash with:  python manage.py hash-password
+    G6_USERS={"noam": "pbkdf2:sha256:600000$...", ...}
+        Better. Only the hash ever leaves your machine. Needs Python once,
+        to run:  python manage.py hash-password
+
+G6_USERS wins when both are set.
 """
 import json
 import os
 import time
 
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 # Compared against when the username does not exist, so a wrong username
 # and a wrong password take the same time to answer.
@@ -30,15 +37,46 @@ LOCKOUT_SECONDS = 300
 _attempts: dict[str, list] = {}
 
 
+_accounts_cache: dict[str, str] = {}
+_accounts_source: str | None = None
+
+
+def _parse_plain_accounts(raw: str) -> dict[str, str]:
+    """user:password,user2:password2 -> {user: hash}. Hashed once at startup."""
+    global _accounts_cache, _accounts_source
+
+    if _accounts_source == raw:
+        return _accounts_cache
+
+    users = {}
+    for pair in raw.split(","):
+        pair = pair.strip()
+        if not pair or ":" not in pair:
+            continue
+        name, password = pair.split(":", 1)
+        name, password = name.strip(), password.strip()
+        if name and password:
+            users[name] = generate_password_hash(password)
+
+    _accounts_cache = users
+    _accounts_source = raw
+    return users
+
+
 def load_users() -> dict[str, str]:
     raw = os.environ.get("G6_USERS", "").strip()
-    if not raw:
-        return {}
-    try:
-        users = json.loads(raw)
-    except ValueError:
-        return {}
-    return users if isinstance(users, dict) else {}
+    if raw:
+        try:
+            users = json.loads(raw)
+        except ValueError:
+            return {}
+        return users if isinstance(users, dict) else {}
+
+    plain = os.environ.get("G6_ACCOUNTS", "").strip()
+    if plain:
+        return _parse_plain_accounts(plain)
+
+    return {}
 
 
 def auth_configured() -> bool:

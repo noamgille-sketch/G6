@@ -16,9 +16,13 @@ from dashboard.app import app
 if not auth.auth_configured():
     raise SystemExit(
         "\nG6 Guard refuse de démarrer : aucun compte configuré.\n\n"
-        "Ce dashboard serait accessible à tout le monde sur Internet.\n"
-        "Crée un compte avec :  python manage.py hash-password\n"
-        "puis ajoute G6_USERS aux variables d'environnement de ton hébergeur.\n"
+        "Sans compte, ce dashboard serait accessible à tout le monde sur Internet.\n\n"
+        "Ajoute une de ces deux variables d'environnement chez ton hébergeur :\n\n"
+        "  G6_ACCOUNTS=ton_pseudo:ton_mot_de_passe,collegue:son_mot_de_passe\n"
+        "      (simple ; les mots de passe restent visibles dans les réglages\n"
+        "       de l'hébergeur, donc utilises-en un que tu n'utilises nulle part ailleurs)\n\n"
+        "  G6_USERS={\"ton_pseudo\": \"pbkdf2:sha256:...\"}\n"
+        "      (plus sûr ; génère la valeur avec : python manage.py hash-password)\n"
     )
 
 if not os.environ.get("G6_SECRET_KEY"):

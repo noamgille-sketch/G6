@@ -2,11 +2,12 @@ services:
   - type: web
     name: g6-guard
     runtime: python
-    # "starter" is required for the persistent disk below. On the free plan,
-    # remove the whole `disk:` block and the G6_DB_PATH variable - everything
-    # still works, but the database is wiped on every restart/redeploy.
+    # "free" works for trying it out. The persistent disk below needs a paid
+    # plan; on free, delete the whole `disk:` block and the G6_DB_PATH
+    # variable - everything still runs, but the database (scan history and
+    # pending links) is wiped on every restart and redeploy.
     plan: starter
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && python fetch_scanner.py
     startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
     disk:
       name: g6-data
@@ -17,12 +18,22 @@ services:
       # files that ship in data/.
       - key: G6_DB_PATH
         value: /var/g6data/g6guard.sqlite3
-      # Set these two yourself in the Render dashboard (never commit them):
-      #   python manage.py secret-key
-      #   python manage.py hash-password
+
+      # Accounts. Set ONE of these in the Render dashboard.
+      #   Simple:  G6_ACCOUNTS = noam:monmotdepasse,collegue:sonmotdepasse
+      #   Safer:   G6_USERS    = output of `python manage.py hash-password`
+      # The app refuses to start if neither is set.
+      - key: G6_ACCOUNTS
+        sync: false
+
+      # Signs login sessions. Any long random string; Render can make one.
       - key: G6_SECRET_KEY
+        generateValue: true
+
+      # Only needed if the repository is private, so the build can download
+      # G6Scan.exe from your releases.
+      - key: GITHUB_TOKEN
         sync: false
-      - key: G6_USERS
-        sync: false
+
       - key: PYTHON_VERSION
         value: "3.11"
