@@ -12,6 +12,7 @@ import hashlib
 import os
 
 from ..config import IS_WINDOWS
+from ..profile import ScanProfile
 from ..signatures import file_name_is_suspicious, sha256_lookup
 from .base import CheckResult, Finding, Severity
 
@@ -21,22 +22,18 @@ MAX_HASH_BYTES = 200 * 1024 * 1024  # skip hashing anything bigger than this
 HASHABLE_EXTS = {".exe", ".dll", ".asi", ".sys"}
 
 
-def _target_dirs() -> list[str]:
+def _target_dirs(profile: ScanProfile) -> list[str]:
     if IS_WINDOWS:
         home = os.environ.get("USERPROFILE", os.path.expanduser("~"))
         temp = os.environ.get("TEMP", os.path.join(home, "AppData", "Local", "Temp"))
-        return [
-            os.path.join(home, "Desktop"),
-            os.path.join(home, "Downloads"),
-            os.path.join(home, "Documents"),
-            temp,
-        ]
-    home = os.path.expanduser("~")
-    return [
-        os.path.join(home, "Desktop"),
-        os.path.join(home, "Downloads"),
-        os.path.join(home, "Documents"),
-    ]
+        dirs = [os.path.join(home, "Desktop"), os.path.join(home, "Downloads"), temp]
+    else:
+        home = os.path.expanduser("~")
+        dirs = [os.path.join(home, "Desktop"), os.path.join(home, "Downloads")]
+
+    if profile.scan_documents:
+        dirs.append(os.path.join(home, "Documents"))
+    return dirs
 
 
 def _sha256(path: str) -> str | None:
@@ -52,11 +49,11 @@ def _sha256(path: str) -> str | None:
         return None
 
 
-def run() -> CheckResult:
+def run(profile: ScanProfile) -> CheckResult:
     findings: list[Finding] = []
     scanned = 0
 
-    for root_dir in _target_dirs():
+    for root_dir in _target_dirs(profile):
         if not os.path.isdir(root_dir):
             continue
 

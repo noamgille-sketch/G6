@@ -38,6 +38,65 @@ le score de risque du scan est la somme des sévérités plafonnée à 100.
 Les checks marqués **Windows only** sont automatiquement skip (avec la raison
 affichée dans le dashboard) sur un autre OS.
 
+## Liens de vérification (le mode "Echo AC")
+
+Tu peux générer un lien de vérification depuis le dashboard, l'envoyer à
+quelqu'un, et récupérer le résultat de son scan chez toi.
+
+1. Sur ton dashboard, remplis "Who is this for?" et clique **Create link**.
+2. Envoie le lien généré (`https://ton-adresse/verify/<token>`).
+3. La personne ouvre le lien : elle voit une page qui explique exactement ce qui
+   est regardé et ce qui ne l'est jamais, puis lance
+   `python verify_client.py <le lien>`.
+4. Le client scanne, écrit le rapport complet dans un fichier **sur son disque**,
+   affiche chaque finding, et n'envoie rien tant qu'elle n'a pas tapé `yes`
+   (elle peut aussi utiliser `--dry-run` pour scanner sans jamais envoyer).
+5. Le résultat apparaît sur ton dashboard.
+
+Le lien est à usage unique, expire (24h par défaut, réglable), et tu peux le
+révoquer à tout moment.
+
+### Ce que le mode "remote" ne collecte pas
+
+Le scan lancé via un lien utilise un profil bridé (`g6_anticheat/profile.py`),
+différent de celui que tu lances sur ta propre machine :
+
+| | Ton scan local | Scan via lien |
+|---|---|---|
+| Dossier Documents | scanné | **exclu** |
+| Chemins de fichiers | complets | **anonymisés** (`%USERPROFILE%`, username remplacé) |
+| Connexions réseau / IP | listées | **désactivé** |
+| Lignes de commande des process | envoyées | **exclues** |
+| Contenu des fichiers | jamais | jamais |
+
+Tout ce qui remonte, ce sont des **noms** de process/fichiers/drivers qui
+matchent une signature de cheat, plus le nom d'affichage que la personne a tapé
+elle-même. Aucun contenu de fichier, aucun screenshot, aucune donnée de
+navigateur, jamais.
+
+### Rendre ton dashboard joignable
+
+Par défaut le dashboard écoute sur `127.0.0.1`, donc le lien généré ne marche
+que chez toi. Pour qu'un ami puisse l'ouvrir, passe par un tunnel (cloudflared,
+ngrok...) et indique l'adresse publique :
+
+```powershell
+set G6_PUBLIC_URL=https://ton-tunnel.trycloudflare.com
+python dashboard\app.py
+```
+
+Le dashboard n'a **pas de système de login** : n'expose pas le port directement
+sur Internet, préfère un tunnel que tu coupes après usage.
+
+### Ce que ça ne garantit pas
+
+Un scan côté client peut être falsifié par quelqu'un de déterminé (c'est vrai
+pour tout anticheat user-mode, et c'est pour ça qu'Echo AC utilise un driver
+kernel + des binaires signés). Le serveur recalcule le score à partir des
+findings pour qu'un client ne puisse pas s'auto-déclarer "Clean", mais un cheat
+suffisamment avancé peut rester invisible du scan lui-même. C'est un outil de
+confiance et de triage entre amis, pas une preuve.
+
 ## Installation (sur ta machine Windows, celle qui fait tourner FiveM)
 
 ```powershell
@@ -105,7 +164,11 @@ Python est vidé à chaque process `run_scan.py` / dashboard).
 
 ```
 g6_anticheat/        package de détection (checks + moteur + stockage sqlite)
-dashboard/           app Flask (dashboard web local)
+  profile.py         profils local/remote : tout ce qui touche à la vie privée
+  privacy.py         anonymisation des chemins
+  submission.py      validation des rapports reçus du réseau (rien n'est fait confiance)
+dashboard/           app Flask (dashboard + liens de vérification)
 data/signatures.json base de signatures éditable
-run_scan.py          CLI pour lancer un scan ponctuel
+run_scan.py          CLI pour scanner ta propre machine
+verify_client.py     client à lancer par la personne qui reçoit un lien
 ```

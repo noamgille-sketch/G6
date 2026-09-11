@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block content %}
+
+<a class="link back" href="{{ url_for('index') }}">&larr; All verifications</a>
+
+<section class="hero">
+  <div>
+    <h1>Verification for {{ v.label or "unnamed" }}</h1>
+    <p class="muted">
+      Created {{ v.created_at[:16]|replace("T", " ") }}
+      {% if v.expires_at %} &middot; expires {{ v.expires_at[:16]|replace("T", " ") }}{% endif %}
+    </p>
+  </div>
+  <span class="status status-{{ 'expired' if expired else v.status }} big">
+    {{ "expired" if expired else v.status }}
+  </span>
+</section>
+
+{% if v.status == 'pending' and not expired %}
+<div class="card">
+  <h3>Send this link</h3>
+  <div class="copy-row">
+    <input class="link-input" type="text" value="{{ link }}" readonly onclick="this.select()">
+  </div>
+  <p class="muted">
+    They open it, follow the instructions on that page, and the result lands here.
+    The link works once, then it's used up.
+  </p>
+  <form method="post" action="{{ url_for('revoke_verification', verification_id=v.id) }}">
+    <button class="btn btn-danger" type="submit">Revoke this link</button>
+  </form>
+</div>
+{% endif %}
+
+{% if scan %}
+<div class="card">
+  <h3>Result</h3>
+  <p>
+    <span class="pill pill-{{ (scan.risk_label or 'clean')|lower|replace(' ', '-') }} big">
+      {{ scan.risk_score }} / 100 &middot; {{ scan.risk_label }}
+    </span>
+  </p>
+  <p class="muted">
+    Submitted {{ v.submitted_at[:16]|replace("T", " ") }} by "{{ v.client_label }}"
+    on {{ v.client_platform }} &middot; game running: {{ "yes" if scan.game_running else "no" }}
+  </p>
+  <p class="notice">
+    This result was produced on someone else's machine and reported by their client.
+    A determined cheater can tamper with a client-side scan - read it as a strong
+    signal, not as proof.
+  </p>
+</div>
+
+<h2>Findings ({{ findings|length }})</h2>
+{% if not findings %}
+  <p class="empty">No findings reported.</p>
+{% else %}
+<div class="findings">
+  {% for f in findings %}
+  <details class="finding sev-{{ f.severity_label|lower }}" {% if f.severity_label in ("CRITICAL", "HIGH") %}open{% endif %}>
+    <summary>
+      <span class="badge badge-{{ f.severity_label|lower }}">{{ f.severity_label }}</span>
+      <span class="finding-title">{{ f.title }}</span>
+      <span class="finding-check">{{ f.check }}</span>
+    </summary>
+    <p class="finding-detail">{{ f.detail }}</p>
+    {% if f.evidence %}
+    <pre class="evidence">{{ f.evidence | tojson(indent=2) }}</pre>
+    {% endif %}
+  </details>
+  {% endfor %}
+</div>
+{% endif %}
+
+<h2>Checks run</h2>
+<table class="scan-table small">
+  <thead><tr><th>Check</th><th>Status</th></tr></thead>
+  <tbody>
+    {% for st in statuses %}
+    <tr>
+      <td>{{ st.name }}</td>
+      <td>{{ "Ran" if st.ran else ("Skipped - " + (st.skip_reason or "n/a")) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% elif v.status == 'pending' and not expired %}
+  <p class="empty">Waiting for them to run the scan.</p>
+{% endif %}
+
+{% endblock %}

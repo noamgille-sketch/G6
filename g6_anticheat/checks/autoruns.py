@@ -9,6 +9,7 @@ actually use to survive a reboot.
 import os
 
 from ..config import IS_WINDOWS
+from ..profile import ScanProfile
 from ..signatures import file_name_is_suspicious
 from .base import CheckResult, Finding, Severity
 
@@ -53,7 +54,7 @@ def _iter_startup_folders():
                 yield folder, fname, os.path.join(folder, fname)
 
 
-def run() -> CheckResult:
+def run(profile: ScanProfile) -> CheckResult:
     if not IS_WINDOWS:
         return CheckResult("autoruns", ran=False, skip_reason="Windows only")
 

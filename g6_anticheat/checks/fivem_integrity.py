@@ -17,6 +17,7 @@ import os
 
 from .. import db
 from ..config import IS_WINDOWS
+from ..profile import ScanProfile
 from .base import CheckResult, Finding, Severity
 
 PLUGIN_EXTS = {".asi", ".dll"}
@@ -42,7 +43,7 @@ def _sha256(path: str) -> str | None:
         return None
 
 
-def run() -> CheckResult:
+def run(profile: ScanProfile) -> CheckResult:
     plugins_dir = _plugins_dir()
     if not plugins_dir:
         return CheckResult("fivem_integrity", ran=False, skip_reason="Windows only / FiveM not found")

@@ -27,6 +27,7 @@ from ctypes import wintypes
 import psutil
 
 from ..config import GAME_PROCESS_NAMES, IS_WINDOWS
+from ..profile import ScanProfile
 from .base import CheckResult, Finding, Severity
 
 MEM_COMMIT = 0x1000
@@ -217,7 +218,7 @@ def _scan_private_exec_regions(kernel32, handle, pid, name) -> list[Finding]:
     return findings
 
 
-def run() -> CheckResult:
+def run(profile: ScanProfile) -> CheckResult:
     if not IS_WINDOWS:
         return CheckResult("memory", ran=False, skip_reason="Windows only")
 

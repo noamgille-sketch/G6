@@ -12,7 +12,23 @@ CREATE TABLE IF NOT EXISTS scans (
     finished_at TEXT,
     risk_score INTEGER,
     risk_label TEXT,
-    game_running INTEGER DEFAULT 0
+    game_running INTEGER DEFAULT 0,
+    source TEXT NOT NULL DEFAULT 'local',
+    client_label TEXT
+);
+
+CREATE TABLE IF NOT EXISTS verifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    token TEXT NOT NULL UNIQUE,
+    label TEXT,
+    note TEXT,
+    created_at TEXT NOT NULL,
+    expires_at TEXT,
+    status TEXT NOT NULL DEFAULT 'pending',
+    submitted_at TEXT,
+    client_label TEXT,
+    client_platform TEXT,
+    scan_id INTEGER REFERENCES scans(id)
 );
 
 CREATE TABLE IF NOT EXISTS findings (
@@ -61,11 +77,18 @@ def get_connection():
 def init_db():
     with get_connection() as conn:
         conn.executescript(SCHEMA)
+        existing = {r["name"] for r in conn.execute("PRAGMA table_info(scans)")}
+        for column, ddl in (("source", "TEXT NOT NULL DEFAULT 'local'"), ("client_label", "TEXT")):
+            if column not in existing:
+                conn.execute(f"ALTER TABLE scans ADD COLUMN {column} {ddl}")
 
 
-def create_scan() -> int:
+def create_scan(source: str = "local", client_label: str | None = None) -> int:
     with get_connection() as conn:
-        cur = conn.execute("INSERT INTO scans (started_at) VALUES (?)", (_now(),))
+        cur = conn.execute(
+            "INSERT INTO scans (started_at, source, client_label) VALUES (?, ?, ?)",
+            (_now(), source, client_label),
+        )
         return cur.lastrowid
 
 
@@ -135,6 +158,52 @@ def get_check_statuses(scan_id: int):
             "SELECT * FROM check_status WHERE scan_id = ?", (scan_id,)
         ).fetchall()
         return [dict(r) for r in rows]
+
+
+def create_verification(token: str, label: str | None, note: str | None, expires_at: str | None) -> int:
+    with get_connection() as conn:
+        cur = conn.execute(
+            "INSERT INTO verifications (token, label, note, created_at, expires_at) VALUES (?, ?, ?, ?, ?)",
+            (token, label, note, _now(), expires_at),
+        )
+        return cur.lastrowid
+
+
+def list_verifications(limit: int = 50):
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT * FROM verifications ORDER BY id DESC LIMIT ?", (limit,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def get_verification_by_token(token: str):
+    with get_connection() as conn:
+        row = conn.execute("SELECT * FROM verifications WHERE token = ?", (token,)).fetchone()
+        return dict(row) if row else None
+
+
+def get_verification(verification_id: int):
+    with get_connection() as conn:
+        row = conn.execute("SELECT * FROM verifications WHERE id = ?", (verification_id,)).fetchone()
+        return dict(row) if row else None
+
+
+def complete_verification(token: str, scan_id: int, client_label: str | None, client_platform: str | None):
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE verifications SET status = 'completed', submitted_at = ?, scan_id = ?, "
+            "client_label = ?, client_platform = ? WHERE token = ?",
+            (_now(), scan_id, client_label, client_platform, token),
+        )
+
+
+def revoke_verification(verification_id: int):
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE verifications SET status = 'revoked' WHERE id = ? AND status = 'pending'",
+            (verification_id,),
+        )
 
 
 def baseline_count() -> int:

@@ -3,31 +3,80 @@
 
 <section class="hero">
   <div>
-    <h1>Scan history</h1>
-    <p class="muted">Run a scan before and after installing something you're unsure about.</p>
+    <h1>Verifications</h1>
+    <p class="muted">Create a link, send it to someone, get their scan result here.</p>
+  </div>
+</section>
+
+{% if base_url_is_local %}
+<p class="notice">
+  Your links currently point at <code>{{ base_url }}</code>, which only works on this machine.
+  To send one to someone else, expose the dashboard through a tunnel and set
+  <code>G6_PUBLIC_URL</code> to that public address before starting it.
+</p>
+{% endif %}
+
+<form class="create-form" method="post" action="{{ url_for('create_verification') }}">
+  <input type="text" name="label" placeholder="Who is this for? (e.g. Kevin)" maxlength="80">
+  <input type="text" name="note" placeholder="Optional note shown to them" maxlength="300">
+  <input type="number" name="hours" value="24" min="1" max="336" title="Hours until the link expires">
+  <button class="btn btn-primary" type="submit">Create link</button>
+</form>
+
+{% if not verifications %}
+  <p class="empty">No verification links yet.</p>
+{% else %}
+<table class="scan-table">
+  <thead>
+    <tr><th>For</th><th>Created</th><th>Status</th><th>Result</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for v in verifications %}
+    <tr>
+      <td>{{ v.label or "unnamed" }}</td>
+      <td>{{ v.created_at[:16]|replace("T", " ") }}</td>
+      <td><span class="status status-{{ v.status }}">{{ v.status }}</span></td>
+      <td>
+        {% if v.scan_id %}
+          <a class="link" href="{{ url_for('scan_detail', scan_id=v.scan_id) }}">view scan</a>
+        {% else %}
+          <span class="muted">waiting</span>
+        {% endif %}
+      </td>
+      <td><a class="link" href="{{ url_for('verification_detail', verification_id=v.id) }}">Details &rarr;</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<section class="hero" style="margin-top:40px">
+  <div>
+    <h1>Your own scans</h1>
+    <p class="muted">Scans of this machine.</p>
   </div>
   <a class="btn btn-primary" href="{{ url_for('trigger_and_redirect') }}">Run new scan</a>
 </section>
 
 {% if not scans %}
-  <p class="empty">No scans yet. Click "Run new scan" to get started.</p>
+  <p class="empty">No scans yet.</p>
 {% else %}
 <table class="scan-table">
   <thead>
-    <tr>
-      <th>#</th>
-      <th>Started</th>
-      <th>Game running</th>
-      <th>Risk score</th>
-      <th></th>
-    </tr>
+    <tr><th>#</th><th>Started</th><th>Source</th><th>Risk score</th><th></th></tr>
   </thead>
   <tbody>
     {% for s in scans %}
     <tr class="risk-row risk-{{ (s.risk_label or 'clean')|lower|replace(' ', '-') }}">
       <td>{{ s.id }}</td>
-      <td>{{ s.started_at }}</td>
-      <td>{{ "Yes" if s.game_running else "No" }}</td>
+      <td>{{ s.started_at[:16]|replace("T", " ") }}</td>
+      <td>
+        {% if s.source == 'remote' %}
+          <span class="status status-remote">{{ s.client_label or "remote" }}</span>
+        {% else %}
+          this PC
+        {% endif %}
+      </td>
       <td>
         <span class="pill pill-{{ (s.risk_label or 'clean')|lower|replace(' ', '-') }}">
           {{ s.risk_score if s.risk_score is not none else "-" }} / 100 &middot; {{ s.risk_label or "running..." }}

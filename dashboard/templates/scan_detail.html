@@ -6,7 +6,11 @@
 <section class="hero">
   <div>
     <h1>Scan #{{ scan.id }}</h1>
-    <p class="muted">Started {{ scan.started_at }} &middot; Game running: {{ "Yes" if scan.game_running else "No" }}</p>
+    <p class="muted">
+      {{ scan.started_at[:16]|replace("T", " ") }} &middot;
+      {% if scan.source == 'remote' %}reported by "{{ scan.client_label }}"{% else %}this PC{% endif %}
+      &middot; Game running: {{ "Yes" if scan.game_running else "No" }}
+    </p>
   </div>
   <span class="pill pill-{{ (scan.risk_label or 'clean')|lower|replace(' ', '-') }} big">
     {{ scan.risk_score if scan.risk_score is not none else "-" }} / 100 &middot; {{ scan.risk_label or "running..." }}

@@ -8,12 +8,16 @@ on non-standard ports for you to eyeball, it does not accuse anything.
 import psutil
 
 from ..config import GAME_PROCESS_NAMES
+from ..profile import ScanProfile
 from .base import CheckResult, Finding, Severity
 
 FIVEM_KNOWN_PORTS = {30120, 30110, 40120, 443, 80}
 
 
-def run() -> CheckResult:
+def run(profile: ScanProfile) -> CheckResult:
+    if not profile.include_network:
+        return CheckResult("network", ran=False, skip_reason="disabled by privacy profile")
+
     findings: list[Finding] = []
     ran_any = False
 

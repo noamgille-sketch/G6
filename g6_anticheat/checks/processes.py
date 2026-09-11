@@ -11,6 +11,7 @@ import os
 import psutil
 
 from ..config import GAME_PROCESS_NAMES
+from ..profile import ScanProfile
 from ..signatures import process_name_is_suspicious
 from .base import CheckResult, Finding, Severity
 
@@ -21,7 +22,7 @@ def _is_game_running(procs) -> bool:
     return any(p.info["name"] and p.info["name"].lower() in GAME_PROCESS_NAMES for p in procs)
 
 
-def run() -> CheckResult:
+def run(profile: ScanProfile) -> CheckResult:
     findings: list[Finding] = []
     try:
         procs = list(psutil.process_iter(["pid", "name", "exe", "cmdline"]))

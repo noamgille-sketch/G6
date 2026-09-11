@@ -17,6 +17,7 @@ import os
 from ctypes import wintypes
 
 from ..config import IS_WINDOWS
+from ..profile import ScanProfile
 from ..signatures import driver_is_blocklisted, trusted_driver_dirs
 from .base import CheckResult, Finding, Severity
 
@@ -40,7 +41,7 @@ def _load_winapi():
     return psapi
 
 
-def run() -> CheckResult:
+def run(profile: ScanProfile) -> CheckResult:
     if not IS_WINDOWS:
         return CheckResult("drivers", ran=False, skip_reason="Windows only")
 
