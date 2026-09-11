@@ -153,6 +153,8 @@ def verify_landing(token):
         expired=_is_expired(verification),
         collects=profiles.REMOTE_COLLECTS,
         never_collects=profiles.REMOTE_NEVER_COLLECTS,
+        privacy_headline=profiles.PRIVACY_HEADLINE,
+        privacy_summary=profiles.PRIVACY_SUMMARY,
     )
 
 
@@ -168,6 +170,8 @@ def verify_manifest(token):
         "label": verification["label"],
         "note": verification["note"],
         "status": "expired" if _is_expired(verification) else verification["status"],
+        "privacy_headline": profiles.PRIVACY_HEADLINE,
+        "privacy_summary": profiles.PRIVACY_SUMMARY,
         "collects": profiles.REMOTE_COLLECTS,
         "never_collects": profiles.REMOTE_NEVER_COLLECTS,
     })

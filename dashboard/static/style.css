@@ -176,6 +176,77 @@ h2 { font-size: 1.1rem; margin-top: 32px; color: var(--text); }
   margin: 0 0 12px;
 }
 
+.verdict {
+  border-radius: 12px;
+  padding: 26px 24px;
+  margin-bottom: 18px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  border-left: 6px solid var(--text-muted);
+}
+.verdict-main {
+  font-size: 1.9rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.verdict-detail {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.verdict-legit { border-left-color: var(--c-low); }
+.verdict-legit .verdict-main { color: var(--c-low); }
+.verdict-suspect { border-left-color: var(--c-medium); }
+.verdict-suspect .verdict-main { color: var(--c-medium); }
+.verdict-cheat-detecte {
+  border-left-color: var(--c-critical);
+  background: rgba(255, 59, 92, 0.06);
+}
+.verdict-cheat-detecte .verdict-main { color: var(--c-critical); }
+
+.verdict-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.verdict-chip.verdict-legit { background: rgba(63,191,111,0.15); color: var(--c-low); }
+.verdict-chip.verdict-suspect { background: rgba(230,184,0,0.15); color: var(--c-medium); }
+.verdict-chip.verdict-cheat-detecte { background: var(--c-critical); color: #fff; }
+
+.cheat-list { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; }
+.cheat-tag {
+  background: var(--c-critical);
+  color: #fff;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.privacy-banner {
+  background: rgba(63, 191, 111, 0.09);
+  border: 1px solid rgba(63, 191, 111, 0.4);
+  border-radius: 12px;
+  padding: 22px 24px;
+  margin-bottom: 20px;
+}
+.privacy-banner h2 {
+  margin: 0 0 10px;
+  font-size: 1.15rem;
+  color: var(--c-low);
+}
+.privacy-banner p {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border);

@@ -33,14 +33,15 @@
   <tbody>
     {% for v in verifications %}
     <tr>
-      <td>{{ v.label or "unnamed" }}</td>
+      <td>{{ v.label or "sans nom" }}</td>
       <td>{{ v.created_at[:16]|replace("T", " ") }}</td>
       <td><span class="status status-{{ v.status }}">{{ v.status }}</span></td>
       <td>
-        {% if v.scan_id %}
-          <a class="link" href="{{ url_for('scan_detail', scan_id=v.scan_id) }}">view scan</a>
+        {% if v.verdict %}
+          <span class="verdict-chip verdict-{{ v.verdict|lower|replace(' ', '-') }}">{{ v.verdict }}</span>
+          {% if v.detected_cheats %}<br><span class="muted">{{ v.detected_cheats }}</span>{% endif %}
         {% else %}
-          <span class="muted">waiting</span>
+          <span class="muted">en attente</span>
         {% endif %}
       </td>
       <td><a class="link" href="{{ url_for('verification_detail', verification_id=v.id) }}">Details &rarr;</a></td>

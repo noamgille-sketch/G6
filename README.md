@@ -24,6 +24,7 @@ un signal utile, pas une garantie à 100 %.
 
 | Check | Fichier | Ce qu'il regarde |
 |---|---|---|
+| `cheat_scan` | `g6_anticheat/checks/cheat_scan.py` | **Identifie le cheat par son nom** : process, fichiers et dossiers correspondant à une famille connue (voir plus bas) |
 | `processes` | `g6_anticheat/checks/processes.py` | Noms de process / lignes de commande matchant des mots-clés connus (injector, loader, spoofer, hwid...), process lancés depuis Temp/Downloads pendant que le jeu tourne |
 | `memory` | `g6_anticheat/checks/memory.py` | **Windows only.** Modules "fantômes" (DLL chargée en mémoire mais supprimée du disque) et mémoire exécutable privée non backée par un fichier (signature classique du manual mapping) dans `FiveM_GTAProcess.exe` / `GTA5.exe` |
 | `drivers` | `g6_anticheat/checks/drivers.py` | **Windows only.** Drivers kernel chargés qui matchent la liste noire de drivers vulnérables (technique BYOVD), + drivers chargés hors de `System32\drivers` |
@@ -37,6 +38,59 @@ le score de risque du scan est la somme des sévérités plafonnée à 100.
 
 Les checks marqués **Windows only** sont automatiquement skip (avec la raison
 affichée dans le dashboard) sur un autre OS.
+
+## Verdict et identification du cheat
+
+À la fin de chaque scan, tu as un verdict en clair :
+
+| Verdict | Ce que ça veut dire |
+|---|---|
+| **CHEAT DETECTE** | Un cheat connu a été identifié **par son nom** (Eulen, RedEngine...). Le ou les noms sont affichés. |
+| **SUSPECT** | Soit un nom trop commun a matché (à confirmer à la main), soit aucun nom connu mais des comportements typiques de cheat (code injecté, driver détourné). Un cheat renommé ou privé donne exactement ce résultat. |
+| **LEGIT** | Aucun cheat connu et aucun comportement suspect. |
+
+Important sur "LEGIT" : ça veut dire *rien trouvé par ces vérifications*, pas
+*cette personne est innocente*. Un cheat kernel-mode bien fait peut passer
+sous le radar d'un scan user-mode.
+
+### Comment il identifie le cheat
+
+`data/cheat_signatures.json` liste les familles connues (Eulen, RedEngine,
+Desudo, Skript.gg, Hydro, TZX, Brutan, Lumia, Susano, Impulse, Cherax, Stand,
+Kiddions, Paragon, Absolute, KDMapper, Xenos, Cheat Engine...) avec, pour
+chacune, les artefacts qui la trahissent.
+
+Deux niveaux de correspondance, pour éviter les accusations à tort :
+
+- `filename_contains` / `folder_contains` → **sous-chaîne**, réservé aux noms de
+  marque distinctifs (`eulen`, `redengine`). Match = preuve forte → CHEAT DETECTE.
+- `filename_exact` / `process_exact` / `folder_exact` → **nom complet**, pour les
+  noms courts et communs (`stand.exe`, `impulse.dll`). Match = SUSPECT, à confirmer.
+
+C'est cette distinction qui fait qu'un fichier légitime nommé
+`standard_library.dll` ou `understanding_python.exe` ne déclenche rien, alors
+qu'un vrai `Stand.exe` est bien remonté.
+
+### Les hashes sont vides, volontairement
+
+Le champ `sha256` de chaque famille est vide au départ. Je n'ai pas voulu livrer
+des hashes inventés : ça donnerait un scanner qui a l'air complet et qui ne
+détecte rien. Quand tu croises un vrai échantillon, ajoute son hash :
+
+```json
+{ "name": "Eulen", "sha256": ["le_vrai_hash_sha256_ici"] }
+```
+
+Un match par hash est le seul indicateur traité comme une **certitude**.
+
+### Ce que cette approche ne voit pas
+
+La détection nominative repose sur le fait que le cheat porte son propre nom.
+Un cheat renommé en `svchost.exe`, un cheat privé, ou un cheat injecté sans
+jamais toucher au disque ne matchera **aucune** famille. C'est précisément le
+rôle des autres vérifications (mémoire injectée, modules fantômes, drivers
+vulnérables) : elles ne disent pas *quel* cheat, mais elles voient *qu'il y en
+a un*. D'où le verdict SUSPECT dans ce cas.
 
 ## Liens de vérification (le mode "Echo AC")
 
@@ -164,11 +218,13 @@ Python est vidé à chaque process `run_scan.py` / dashboard).
 
 ```
 g6_anticheat/        package de détection (checks + moteur + stockage sqlite)
+  cheats.py          identification des familles de cheats par leurs artefacts
   profile.py         profils local/remote : tout ce qui touche à la vie privée
   privacy.py         anonymisation des chemins
   submission.py      validation des rapports reçus du réseau (rien n'est fait confiance)
 dashboard/           app Flask (dashboard + liens de vérification)
-data/signatures.json base de signatures éditable
+data/cheat_signatures.json  familles de cheats nommées (à enrichir)
+data/signatures.json        heuristiques génériques
 run_scan.py          CLI pour scanner ta propre machine
 verify_client.py     client à lancer par la personne qui reçoit un lien
 ```

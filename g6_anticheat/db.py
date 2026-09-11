@@ -14,7 +14,10 @@ CREATE TABLE IF NOT EXISTS scans (
     risk_label TEXT,
     game_running INTEGER DEFAULT 0,
     source TEXT NOT NULL DEFAULT 'local',
-    client_label TEXT
+    client_label TEXT,
+    verdict TEXT,
+    verdict_detail TEXT,
+    detected_cheats TEXT
 );
 
 CREATE TABLE IF NOT EXISTS verifications (
@@ -78,7 +81,13 @@ def init_db():
     with get_connection() as conn:
         conn.executescript(SCHEMA)
         existing = {r["name"] for r in conn.execute("PRAGMA table_info(scans)")}
-        for column, ddl in (("source", "TEXT NOT NULL DEFAULT 'local'"), ("client_label", "TEXT")):
+        for column, ddl in (
+            ("source", "TEXT NOT NULL DEFAULT 'local'"),
+            ("client_label", "TEXT"),
+            ("verdict", "TEXT"),
+            ("verdict_detail", "TEXT"),
+            ("detected_cheats", "TEXT"),
+        ):
             if column not in existing:
                 conn.execute(f"ALTER TABLE scans ADD COLUMN {column} {ddl}")
 
@@ -92,11 +101,29 @@ def create_scan(source: str = "local", client_label: str | None = None) -> int:
         return cur.lastrowid
 
 
-def finish_scan(scan_id: int, risk_score: int, risk_label: str, game_running: bool):
+def finish_scan(
+    scan_id: int,
+    risk_score: int,
+    risk_label: str,
+    game_running: bool,
+    verdict: str | None = None,
+    verdict_detail: str | None = None,
+    detected_cheats: list[str] | None = None,
+):
     with get_connection() as conn:
         conn.execute(
-            "UPDATE scans SET finished_at = ?, risk_score = ?, risk_label = ?, game_running = ? WHERE id = ?",
-            (_now(), risk_score, risk_label, int(game_running), scan_id),
+            "UPDATE scans SET finished_at = ?, risk_score = ?, risk_label = ?, game_running = ?, "
+            "verdict = ?, verdict_detail = ?, detected_cheats = ? WHERE id = ?",
+            (
+                _now(),
+                risk_score,
+                risk_label,
+                int(game_running),
+                verdict,
+                verdict_detail,
+                json.dumps(detected_cheats or []),
+                scan_id,
+            ),
         )
 
 
@@ -125,18 +152,27 @@ def set_check_status(scan_id: int, name: str, ran: bool, skip_reason: str | None
         )
 
 
+def _scan_row(row) -> dict:
+    scan = dict(row)
+    try:
+        scan["detected_cheats"] = json.loads(scan.get("detected_cheats") or "[]")
+    except (ValueError, TypeError):
+        scan["detected_cheats"] = []
+    return scan
+
+
 def list_scans(limit: int = 50):
     with get_connection() as conn:
         rows = conn.execute(
             "SELECT * FROM scans ORDER BY id DESC LIMIT ?", (limit,)
         ).fetchall()
-        return [dict(r) for r in rows]
+        return [_scan_row(r) for r in rows]
 
 
 def get_scan(scan_id: int):
     with get_connection() as conn:
         row = conn.execute("SELECT * FROM scans WHERE id = ?", (scan_id,)).fetchone()
-        return dict(row) if row else None
+        return _scan_row(row) if row else None
 
 
 def get_findings(scan_id: int):
@@ -172,9 +208,25 @@ def create_verification(token: str, label: str | None, note: str | None, expires
 def list_verifications(limit: int = 50):
     with get_connection() as conn:
         rows = conn.execute(
-            "SELECT * FROM verifications ORDER BY id DESC LIMIT ?", (limit,)
+            """
+            SELECT v.*, s.verdict AS verdict, s.detected_cheats AS detected_cheats_json
+            FROM verifications v
+            LEFT JOIN scans s ON s.id = v.scan_id
+            ORDER BY v.id DESC LIMIT ?
+            """,
+            (limit,),
         ).fetchall()
-        return [dict(r) for r in rows]
+
+        out = []
+        for row in rows:
+            item = dict(row)
+            try:
+                families = json.loads(item.pop("detected_cheats_json", None) or "[]")
+            except (ValueError, TypeError):
+                families = []
+            item["detected_cheats"] = ", ".join(families)
+            out.append(item)
+        return out
 
 
 def get_verification_by_token(token: str):

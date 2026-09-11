@@ -1,0 +1,174 @@
+{
+  "_comment": [
+    "Named FiveM/GTA5 cheat families. This is what lets the scan say WHICH cheat",
+    "was found instead of just 'something suspicious'.",
+    "",
+    "HOW MATCHING WORKS - read this before adding entries:",
+    "  filename_contains / folder_contains: substring match. ONLY put distinctive",
+    "    brand tokens here ('eulen', 'redengine'). Never a common word - putting",
+    "    'stand' here would flag every file named 'standard_config.dll'.",
+    "  filename_exact / process_exact / folder_exact: full name match, case",
+    "    insensitive. Use this for short or common brand names.",
+    "  sha256: exact file hashes. EMPTY BY DEFAULT ON PURPOSE - shipping made-up",
+    "    hashes would create a scanner that looks thorough and detects nothing.",
+    "    Add real ones as you collect samples; a hash match is the only indicator",
+    "    that is treated as certain proof.",
+    "",
+    "LIMITS: these match the cheat's own naming. A cheat renamed to 'svchost.exe'",
+    "or injected without touching disk will NOT match here - that is what the",
+    "behavioural checks (injected memory, ghost modules, drivers) are for."
+  ],
+
+  "families": [
+    {
+      "name": "Eulen",
+      "kind": "Menu payant FiveM",
+      "filename_contains": ["eulen"],
+      "folder_contains": ["eulen"],
+      "process_exact": ["eulen.exe"],
+      "sha256": []
+    },
+    {
+      "name": "RedEngine",
+      "kind": "Menu payant FiveM",
+      "filename_contains": ["redengine", "red-engine"],
+      "folder_contains": ["redengine", "red-engine"],
+      "process_exact": ["redengine.exe"],
+      "sha256": []
+    },
+    {
+      "name": "Desudo",
+      "kind": "Menu payant FiveM",
+      "filename_contains": ["desudo"],
+      "folder_contains": ["desudo"],
+      "process_exact": ["desudo.exe"],
+      "sha256": []
+    },
+    {
+      "name": "Skript.gg",
+      "kind": "Menu payant FiveM",
+      "filename_contains": ["skript"],
+      "folder_contains": ["skript"],
+      "process_exact": ["skript.exe", "skriptgg.exe"],
+      "sha256": []
+    },
+    {
+      "name": "Hydro",
+      "kind": "Menu payant FiveM",
+      "filename_exact": ["hydro.exe", "hydro.dll", "hydro.asi"],
+      "folder_exact": ["hydro"],
+      "process_exact": ["hydro.exe"],
+      "sha256": []
+    },
+    {
+      "name": "TZX",
+      "kind": "Menu payant FiveM",
+      "filename_contains": ["tzxmenu", "tzx-menu"],
+      "filename_exact": ["tzx.exe", "tzx.dll"],
+      "folder_exact": ["tzx"],
+      "process_exact": ["tzx.exe"],
+      "sha256": []
+    },
+    {
+      "name": "Brutan",
+      "kind": "Menu payant FiveM",
+      "filename_contains": ["brutan"],
+      "folder_contains": ["brutan"],
+      "process_exact": ["brutan.exe"],
+      "sha256": []
+    },
+    {
+      "name": "Lumia",
+      "kind": "Menu payant FiveM",
+      "filename_exact": ["lumia.exe", "lumia.dll", "lumia.asi"],
+      "folder_exact": ["lumia"],
+      "process_exact": ["lumia.exe"],
+      "sha256": []
+    },
+    {
+      "name": "Susano",
+      "kind": "Menu payant FiveM",
+      "filename_contains": ["susano"],
+      "folder_contains": ["susano"],
+      "process_exact": ["susano.exe"],
+      "sha256": []
+    },
+    {
+      "name": "Impulse",
+      "kind": "Menu payant FiveM",
+      "filename_exact": ["impulse.exe", "impulse.dll", "impulse.asi"],
+      "folder_exact": ["impulse"],
+      "process_exact": ["impulse.exe"],
+      "sha256": []
+    },
+    {
+      "name": "Cherax",
+      "kind": "Menu GTA5 (utilisable en FiveM)",
+      "filename_contains": ["cherax"],
+      "folder_contains": ["cherax"],
+      "process_exact": ["cherax.exe"],
+      "sha256": []
+    },
+    {
+      "name": "Stand",
+      "kind": "Menu GTA5 (utilisable en FiveM)",
+      "filename_exact": ["stand.exe", "stand.dll", "stand.asi"],
+      "folder_exact": ["stand"],
+      "process_exact": ["stand.exe"],
+      "sha256": []
+    },
+    {
+      "name": "Kiddions Mod Menu",
+      "kind": "Menu GTA5 externe",
+      "filename_contains": ["kiddions"],
+      "folder_contains": ["kiddions"],
+      "process_exact": ["kiddions.exe", "kiddionsmodest.exe"],
+      "sha256": []
+    },
+    {
+      "name": "Paragon",
+      "kind": "Menu payant FiveM",
+      "filename_exact": ["paragon.exe", "paragon.dll", "paragon.asi"],
+      "folder_exact": ["paragon"],
+      "process_exact": ["paragon.exe"],
+      "sha256": []
+    },
+    {
+      "name": "Absolute",
+      "kind": "Menu payant FiveM",
+      "filename_exact": ["absolute.exe", "absolute.dll", "absolute.asi"],
+      "folder_exact": ["absolute"],
+      "process_exact": ["absolute.exe"],
+      "sha256": []
+    },
+    {
+      "name": "KDMapper",
+      "kind": "Outil de mapping kernel (charge un cheat en kernel-mode)",
+      "filename_contains": ["kdmapper"],
+      "process_exact": ["kdmapper.exe"],
+      "sha256": []
+    },
+    {
+      "name": "Xenos Injector",
+      "kind": "Injecteur de DLL générique",
+      "filename_contains": ["xenos"],
+      "process_exact": ["xenos.exe", "xenos64.exe"],
+      "sha256": []
+    },
+    {
+      "name": "Extreme Injector",
+      "kind": "Injecteur de DLL générique",
+      "filename_contains": ["extremeinjector", "extreme injector"],
+      "process_exact": ["extreme injector.exe", "extremeinjector.exe"],
+      "sha256": []
+    },
+    {
+      "name": "Cheat Engine",
+      "kind": "Debugger mémoire (légitime, mais utilisé pour tricher)",
+      "filename_contains": ["cheatengine"],
+      "process_exact": ["cheatengine-x86_64.exe", "cheatengine-i386.exe"],
+      "driver_exact": ["dbk64.sys", "dbk32.sys"],
+      "sha256": []
+    }
+  ]
+}

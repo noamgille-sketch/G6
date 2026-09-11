@@ -14,6 +14,7 @@ import argparse
 import json
 import os
 import sys
+import textwrap
 import urllib.error
 import urllib.request
 from datetime import datetime
@@ -56,26 +57,33 @@ def http_post_json(url: str, payload: dict):
 
 
 def print_consent(manifest: dict, base_url: str):
-    asked_by = manifest.get("label") or "Someone"
-    print("=" * 68)
-    print(f"  {asked_by} asked you to verify this PC for FiveM cheats.")
-    print(f"  The report will be sent to: {base_url}")
-    print("=" * 68)
+    asked_by = manifest.get("label") or "Quelqu'un"
+    print("=" * 70)
+    print(f"  {asked_by} te demande de vérifier ce PC (cheats FiveM).")
+    print(f"  Le rapport sera envoyé à : {base_url}")
+    print("=" * 70)
+
+    print("\n" + "*" * 70)
+    print("  " + (manifest.get("privacy_headline") or profiles.PRIVACY_HEADLINE).upper())
+    print("*" * 70)
+    summary = manifest.get("privacy_summary") or profiles.PRIVACY_SUMMARY
+    for line in textwrap.wrap(summary, width=68):
+        print(f"  {line}")
 
     if manifest.get("note"):
-        print(f"\n  Their note: {manifest['note']}")
+        print(f"\n  Son message : {manifest['note']}")
 
-    print("\nWHAT THIS SCAN LOOKS AT AND SENDS:")
+    print("\nCE QUI EST REGARDÉ ET ENVOYÉ :")
     for item in manifest.get("collects") or profiles.REMOTE_COLLECTS:
         print(f"  + {item}")
 
-    print("\nWHAT IT NEVER TOUCHES:")
+    print("\nCE QUI N'EST JAMAIS TOUCHÉ :")
     for item in manifest.get("never_collects") or profiles.REMOTE_NEVER_COLLECTS:
         print(f"  - {item}")
 
     print(
-        "\nThe full report is written to a file on YOUR disk first."
-        "\nYou can open it and read every single line before anything is sent."
+        "\nLe rapport complet est d'abord écrit dans un fichier sur TON disque."
+        "\nTu peux l'ouvrir et lire chaque ligne avant que quoi que ce soit soit envoyé."
     )
 
 
@@ -89,10 +97,18 @@ def save_report(report: dict) -> str:
 
 def summarise(report: dict):
     findings = report["findings"]
-    print(f"\nScan finished: {report['risk_score']}/100 - {report['risk_label']}")
-    print(f"{len(findings)} finding(s) to send:\n")
+    print("\n" + "=" * 70)
+    print(f"  VERDICT : {report['verdict']}  ({report['risk_score']}/100)")
+    print("=" * 70)
+    for line in textwrap.wrap(report["verdict_detail"], width=68):
+        print(f"  {line}")
+
+    if report["detected_cheats"]:
+        print("\n  Cheats identifiés : " + ", ".join(report["detected_cheats"]))
+
+    print(f"\n{len(findings)} élément(s) à envoyer :\n")
     if not findings:
-        print("  (nothing suspicious found)")
+        print("  (rien de suspect trouvé)")
     for f in findings:
         print(f"  [{f['severity_label']}] {f['title']}")
 

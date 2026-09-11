@@ -33,21 +33,29 @@
 {% endif %}
 
 {% if scan %}
+<div class="verdict verdict-{{ (scan.verdict or 'LEGIT')|lower|replace(' ', '-')|replace('é', 'e') }}">
+  <div class="verdict-main">{{ scan.verdict or "?" }}</div>
+  <p class="verdict-detail">{{ scan.verdict_detail }}</p>
+  {% if scan.detected_cheats %}
+  <div class="cheat-list">
+    {% for cheat in scan.detected_cheats %}
+      <span class="cheat-tag">{{ cheat }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
 <div class="card">
-  <h3>Result</h3>
-  <p>
-    <span class="pill pill-{{ (scan.risk_label or 'clean')|lower|replace(' ', '-') }} big">
-      {{ scan.risk_score }} / 100 &middot; {{ scan.risk_label }}
-    </span>
-  </p>
   <p class="muted">
-    Submitted {{ v.submitted_at[:16]|replace("T", " ") }} by "{{ v.client_label }}"
-    on {{ v.client_platform }} &middot; game running: {{ "yes" if scan.game_running else "no" }}
+    Score {{ scan.risk_score }}/100 &middot;
+    envoyé le {{ v.submitted_at[:16]|replace("T", " ") }} par "{{ v.client_label }}"
+    sur {{ v.client_platform }} &middot;
+    jeu lancé : {{ "oui" if scan.game_running else "non" }}
   </p>
   <p class="notice">
-    This result was produced on someone else's machine and reported by their client.
-    A determined cheater can tamper with a client-side scan - read it as a strong
-    signal, not as proof.
+    Ce résultat vient de la machine de quelqu'un d'autre, rapporté par son client.
+    Quelqu'un de déterminé peut falsifier un scan côté client - à lire comme un
+    signal fort, pas comme une preuve.
   </p>
 </div>
 

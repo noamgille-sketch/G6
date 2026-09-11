@@ -41,20 +41,29 @@ BY_NAME = {p.name: p for p in (LOCAL, REMOTE)}
 # Shown verbatim to the person who opens a verification link, and printed
 # by the client before it sends anything. Keep these two lists truthful:
 # if you add a check that collects something else, say it here.
+PRIVACY_HEADLINE = "Aucune de tes données personnelles n'est lue ni envoyée."
+
+PRIVACY_SUMMARY = (
+    "Ce scan cherche uniquement des cheats FiveM. Il regarde des NOMS "
+    "(noms de programmes lancés, de fichiers et de dossiers) pour voir si l'un "
+    "correspond à un cheat connu. Il n'ouvre aucun fichier et ne lit jamais "
+    "le contenu de quoi que ce soit."
+)
+
 REMOTE_COLLECTS = [
-    "Names of running processes that match known cheat/injector keywords",
-    "Loaded kernel drivers matching the vulnerable-driver blocklist (BYOVD)",
-    "Suspicious file names in Desktop / Downloads / Temp (names only, never contents)",
-    "Files added or modified in the FiveM plugins folder",
-    "Signs of code injected into the FiveM/GTA5 process (memory regions, not their contents)",
-    "The operating system name and the display name typed by the person scanning",
+    "Les noms des programmes en cours d'exécution qui correspondent à un cheat connu",
+    "Les noms de fichiers et dossiers de cheats connus dans Téléchargements, Bureau et Temp",
+    "Les pilotes système correspondant à la liste des pilotes détournés par les cheats",
+    "Les fichiers ajoutés ou modifiés dans le dossier plugins de FiveM",
+    "Les traces de code injecté dans le processus FiveM/GTA5 (l'emplacement, pas le contenu)",
+    "Le nom de ton système d'exploitation et le pseudo que tu tapes toi-même",
 ]
 
 REMOTE_NEVER_COLLECTS = [
-    "The contents of any file, ever",
-    "Documents folder, pictures, browser data, passwords, messages",
-    "Windows username or computer name (paths are anonymised to %USERPROFILE%)",
-    "Network connections, IP addresses, or which servers are played on",
-    "Screenshots, keystrokes, webcam, microphone",
-    "Anything at all outside the checks listed above",
+    "Le contenu d'un fichier, quel qu'il soit - aucun fichier n'est jamais ouvert",
+    "Tes documents, photos, vidéos - le dossier Documents n'est même pas parcouru",
+    "Tes mots de passe, ton navigateur, ton historique, tes messages",
+    "Ton nom d'utilisateur Windows et le nom de ton PC (remplacés par %USERPROFILE%)",
+    "Tes connexions réseau, ton adresse IP, les serveurs sur lesquels tu joues",
+    "Captures d'écran, frappes clavier, webcam, micro - rien de tout ça",
 ]

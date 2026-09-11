@@ -6,7 +6,7 @@ from their label, the risk score is recalculated server-side, strings are
 truncated, and evidence is flattened to scalars.
 """
 from .checks.base import Severity
-from .engine import risk_label, score_findings
+from .engine import detected_cheats, risk_label, score_findings, verdict_for
 
 MAX_FINDINGS = 200
 MAX_CHECKS = 40
@@ -18,8 +18,10 @@ MAX_LABEL = 80
 
 VALID_SEVERITIES = {s.name: s.value for s in Severity}
 VALID_CHECK_NAMES = {
-    "processes", "memory", "drivers", "autoruns", "filesystem", "fivem_integrity", "network",
+    "cheat_scan", "processes", "memory", "drivers", "autoruns", "filesystem",
+    "fivem_integrity", "network",
 }
+VALID_STRENGTHS = {"CONFIRMED", "STRONG", "MODERATE"}
 
 
 class InvalidSubmission(ValueError):
@@ -42,6 +44,9 @@ def _clean_evidence(raw) -> dict:
         if isinstance(value, bool) or isinstance(value, int):
             out[key[:60]] = value
         elif isinstance(value, str):
+            # An unknown strength would confuse the verdict logic - drop it.
+            if key == "strength" and value not in VALID_STRENGTHS:
+                continue
             out[key[:60]] = value[:MAX_EVIDENCE_VALUE]
     return out
 
@@ -105,6 +110,9 @@ def clean_report(payload) -> dict:
                 checks.append(cleaned)
 
     score = score_findings(findings)
+    # Verdict and cheat list are recomputed from the findings, never taken from
+    # the payload: a client cannot declare itself legit.
+    verdict, verdict_detail = verdict_for(findings)
     client_platform = payload.get("platform")
     client_label = payload.get("client_label")
 
@@ -115,6 +123,9 @@ def clean_report(payload) -> dict:
         "game_running": bool(payload.get("game_running")),
         "risk_score": score,
         "risk_label": risk_label(score),
+        "verdict": verdict,
+        "verdict_detail": verdict_detail,
+        "detected_cheats": detected_cheats(findings),
         "findings": findings,
         "checks": checks,
     }

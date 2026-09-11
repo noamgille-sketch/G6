@@ -1,38 +1,43 @@
 {% extends "base.html" %}
-{% block title %}Verification request &middot; G6 Guard{% endblock %}
+{% block title %}Demande de vérification &middot; G6 Guard{% endblock %}
 {% block content %}
 
 <section class="hero">
   <div>
-    <h1>{{ v.label or "Someone" }} asked you to verify this PC</h1>
-    <p class="muted">A one-off check for FiveM cheats. You stay in control of what gets sent.</p>
+    <h1>{{ v.label or "Quelqu'un" }} te demande de vérifier ce PC</h1>
+    <p class="muted">Un contrôle ponctuel pour les cheats FiveM. Tu gardes le contrôle sur ce qui est envoyé.</p>
   </div>
 </section>
 
 {% if expired %}
-  <p class="notice notice-warn">This link has expired. Ask for a fresh one.</p>
+  <p class="notice notice-warn">Ce lien a expiré. Demande-lui un nouveau lien.</p>
 {% elif v.status == 'completed' %}
-  <p class="notice notice-ok">This verification is already done. Nothing left to do.</p>
+  <p class="notice notice-ok">Cette vérification est déjà faite. Il n'y a plus rien à faire.</p>
 {% elif v.status == 'revoked' %}
-  <p class="notice notice-warn">This link was revoked by the person who created it.</p>
+  <p class="notice notice-warn">Ce lien a été annulé par la personne qui l'a créé.</p>
 {% else %}
+
+<div class="privacy-banner">
+  <h2>{{ privacy_headline }}</h2>
+  <p>{{ privacy_summary }}</p>
+</div>
 
 {% if v.note %}
 <div class="card">
-  <h3>Their note</h3>
+  <h3>Son message</h3>
   <p>{{ v.note }}</p>
 </div>
 {% endif %}
 
 <div class="two-col">
   <div class="card card-ok">
-    <h3>What it looks at</h3>
+    <h3>Ce qui est regardé</h3>
     <ul>
       {% for item in collects %}<li>{{ item }}</li>{% endfor %}
     </ul>
   </div>
   <div class="card card-no">
-    <h3>What it never touches</h3>
+    <h3>Ce qui n'est jamais touché</h3>
     <ul>
       {% for item in never_collects %}<li>{{ item }}</li>{% endfor %}
     </ul>
@@ -40,27 +45,28 @@
 </div>
 
 <div class="card">
-  <h3>How to run it</h3>
-  <p class="muted">You need Python 3.10+ installed. Everything runs on your machine.</p>
+  <h3>Comment le lancer</h3>
+  <p class="muted">Il te faut Python 3.10 ou plus. Tout s'exécute sur ta machine.</p>
   <ol class="steps">
-    <li>Download the G6 Guard folder (the person who sent you this link has it).</li>
-    <li>Open a terminal in that folder and install the dependencies:
+    <li>Récupère le dossier G6 Guard (la personne qui t'a envoyé ce lien l'a).</li>
+    <li>Ouvre un terminal dans ce dossier et installe les dépendances :
       <pre class="cmd">pip install -r requirements.txt</pre>
     </li>
-    <li>Run the verification:
+    <li>Lance la vérification :
       <pre class="cmd">python verify_client.py {{ link }}</pre>
     </li>
   </ol>
   <p class="muted">
-    The scan writes the full report to a file on your own disk and prints every
-    finding before uploading. It only sends it after you type <strong>yes</strong>.
-    Want to see it first without sending anything? Add <code>--dry-run</code>.
+    Le scan écrit le rapport complet dans un fichier sur <strong>ton propre disque</strong> et
+    affiche chaque résultat avant d'envoyer quoi que ce soit. Rien n'est transmis tant que
+    tu n'as pas tapé <strong>oui</strong>. Tu veux le voir sans rien envoyer ? Ajoute
+    <code>--dry-run</code>.
   </p>
 </div>
 
 <p class="notice">
-  Run it as Administrator if you want the deepest check (memory and drivers).
-  It works without admin too, some checks will just be skipped.
+  Lance-le en tant qu'administrateur pour la vérification la plus complète (mémoire et
+  pilotes). Ça marche aussi sans, certaines vérifications seront simplement ignorées.
 </p>
 
 {% endif %}

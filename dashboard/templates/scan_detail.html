@@ -17,6 +17,20 @@
   </span>
 </section>
 
+{% if scan.verdict %}
+<div class="verdict verdict-{{ scan.verdict|lower|replace(' ', '-') }}">
+  <div class="verdict-main">{{ scan.verdict }}</div>
+  <p class="verdict-detail">{{ scan.verdict_detail }}</p>
+  {% if scan.detected_cheats %}
+  <div class="cheat-list">
+    {% for cheat in scan.detected_cheats %}
+      <span class="cheat-tag">{{ cheat }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
 <h2>Findings ({{ findings|length }})</h2>
 {% if not findings %}
   <p class="empty">No findings on this scan.</p>

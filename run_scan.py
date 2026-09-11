@@ -35,9 +35,12 @@ def main():
             print(f"[{color}{f['severity_label']}{RESET}] {f['title']}")
             print(f"    {f['detail']}\n")
 
-    print("-" * 60)
-    print(f"Scan #{result['scan_id']}  |  Game running: {result['game_running']}")
-    print(f"Risk score: {result['risk_score']}/100  ->  {result['risk_label']}")
+    print("=" * 60)
+    print(f"VERDICT : {result['verdict']}   ({result['risk_score']}/100)")
+    print("=" * 60)
+    print(result["verdict_detail"])
+    if result["detected_cheats"]:
+        print("\nCheats identifies : " + ", ".join(result["detected_cheats"]))
     print("-" * 60)
     print("\nRun 'python dashboard/app.py' and open http://127.0.0.1:5151 for the full dashboard.")
     return 0
