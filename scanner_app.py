@@ -155,9 +155,13 @@ class ScannerApp:
         self._list_card(cols, 0, "Ce qui est regardé", profiles.REMOTE_COLLECTS, OK, "+")
         self._list_card(cols, 1, "Ce qui n'est jamais touché", profiles.REMOTE_NEVER_COLLECTS, CRIT, "—")
 
-        if not self.token or not self.server:
-            tk.Label(pad, text="Colle ici le lien que ton contact t'a envoyé :",
-                     font=self.f_small, bg=BG, fg=MUTED, anchor="w").pack(fill="x", pady=(0, 6))
+        self.has_link = bool(self.token and self.server)
+
+        if not self.has_link:
+            tk.Label(pad, text="Colle ici le lien qu'on t'a envoyé — ou laisse vide pour "
+                               "simplement vérifier ce PC sans rien envoyer :",
+                     font=self.f_small, bg=BG, fg=MUTED, anchor="w", justify="left",
+                     wraplength=620).pack(fill="x", pady=(0, 6))
             self.link_entry = tk.Entry(pad, font=self.f_mono, bg=CARD, fg=TEXT,
                                        insertbackground=TEXT, relief="flat", bd=8)
             self.link_entry.pack(fill="x", pady=(0, 14))
@@ -180,9 +184,14 @@ class ScannerApp:
         self.button(row, "Lancer le scan", self.start_scan).pack(side="left")
         self.button(row, "Fermer", self.root.destroy, primary=False).pack(side="left", padx=10)
 
-        tk.Label(pad, text="Le rapport s'affiche ici et reste sur ce PC. Rien n'est envoyé "
-                           "tant que tu n'as pas cliqué sur « Envoyer ».",
-                 font=self.f_small, bg=BG, fg=MUTED, anchor="w",
+        if self.has_link:
+            footer = ("Le rapport s'affiche ici et reste sur ce PC. Rien n'est envoyé "
+                      "tant que tu n'as pas cliqué sur « Envoyer ».")
+        else:
+            footer = ("Sans lien, le scan tourne en mode privé : le résultat s'affiche "
+                      "ici et reste sur ce PC. Aucun envoi n'est possible, il n'y a "
+                      "nulle part où envoyer.")
+        tk.Label(pad, text=footer, font=self.f_small, bg=BG, fg=MUTED, anchor="w",
                  wraplength=620, justify="left").pack(fill="x", pady=(16, 0))
 
     def _list_card(self, parent, col, title, items, color, bullet):
@@ -199,17 +208,27 @@ class ScannerApp:
     # -- screen 2: scanning ----------------------------------------------
 
     def start_scan(self):
+        # No link at all: scan this PC for its owner, with nowhere to send to.
+        self.standalone = False
+
         if self.link_entry is not None:
-            server, token = parse_link(self.link_entry.get())
-            if not token:
-                self.consent_error.config(text="Ce lien n'est pas valide. Il ressemble à "
-                                               "https://.../verify/xxxxx")
-                return
-            self.server = server or self.server
-            self.token = token
-            if not self.server:
-                self.consent_error.config(text="Le lien doit contenir l'adresse complète du site.")
-                return
+            typed = self.link_entry.get().strip()
+            if not typed:
+                self.standalone = True
+            else:
+                server, token = parse_link(typed)
+                if not token:
+                    self.consent_error.config(
+                        text="Ce lien n'est pas valide. Il ressemble à "
+                             "https://.../verify/xxxxx — ou laisse le champ vide pour "
+                             "vérifier ce PC sans rien envoyer.")
+                    return
+                self.server = server or self.server
+                self.token = token
+                if not self.server:
+                    self.consent_error.config(
+                        text="Le lien doit contenir l'adresse complète du site.")
+                    return
 
         self.clear()
         wrap = tk.Frame(self.container, bg=BG)
@@ -309,7 +328,9 @@ class ScannerApp:
             tk.Frame(head, bg=CARD, height=8).pack()
 
         findings = sorted(report["findings"], key=lambda f: -f["severity"])
-        tk.Label(pad, text=f"Ce qui sera envoyé — {len(findings)} élément(s)",
+        heading = ("Détail du scan" if getattr(self, "standalone", False)
+                   else "Ce qui sera envoyé")
+        tk.Label(pad, text=f"{heading} — {len(findings)} élément(s)",
                  font=self.f_h2, bg=BG, fg=TEXT, anchor="w").pack(fill="x", pady=(0, 10))
 
         if not findings:
@@ -340,11 +361,22 @@ class ScannerApp:
                                    anchor="w", wraplength=620, justify="left")
         self.send_error.pack(fill="x", pady=(0, 8))
 
-        row = tk.Frame(pad, bg=BG)
-        row.pack(fill="x", pady=(0, 10))
-        self.send_btn = self.button(row, "Envoyer le résultat", self.send)
-        self.send_btn.pack(side="left")
-        self.button(row, "Ne pas envoyer", self.root.destroy, primary=False).pack(side="left", padx=10)
+        if getattr(self, "standalone", False):
+            tk.Label(pad, text="Scan privé : ce résultat n'est parti nulle part et ne "
+                               "partira nulle part. Pour l'envoyer à quelqu'un, relance "
+                               "le programme avec le lien qu'il t'a donné.",
+                     font=self.f_small, bg=BG, fg=MUTED, anchor="w",
+                     wraplength=620, justify="left").pack(fill="x", pady=(0, 14))
+            row = tk.Frame(pad, bg=BG)
+            row.pack(fill="x", pady=(0, 10))
+            self.button(row, "Fermer", self.root.destroy).pack(side="left")
+        else:
+            row = tk.Frame(pad, bg=BG)
+            row.pack(fill="x", pady=(0, 10))
+            self.send_btn = self.button(row, "Envoyer le résultat", self.send)
+            self.send_btn.pack(side="left")
+            self.button(row, "Ne pas envoyer", self.root.destroy,
+                        primary=False).pack(side="left", padx=10)
 
     # -- sending ---------------------------------------------------------
 
