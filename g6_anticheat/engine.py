@@ -106,16 +106,40 @@ def _game_is_running() -> bool:
     return False
 
 
-def collect_findings(profile: profiles.ScanProfile) -> tuple[list[dict], list[dict]]:
+CHECK_LABELS_FR = {
+    "cheat_scan": "Recherche des cheats connus",
+    "execution_history": "Lecture de l'historique d'exécution",
+    "tampering": "Vérification des traces effacées",
+    "memory": "Analyse de la mémoire du jeu",
+    "drivers": "Contrôle des pilotes système",
+    "fivem_integrity": "Inspection des plugins FiveM",
+    "processes": "Examen des programmes actifs",
+    "filesystem": "Balayage des fichiers",
+    "autoruns": "Contrôle du démarrage automatique",
+    "network": "Connexions réseau",
+}
+
+
+def collect_findings(profile: profiles.ScanProfile, on_progress=None) -> tuple[list[dict], list[dict]]:
     """Run every check and return (findings, check statuses) as plain dicts.
 
     Redaction is applied here, centrally, so no individual check can leak a
     path by forgetting to call the helper.
+
+    on_progress(label, done, total) is called before each check so a UI can
+    say what is happening instead of showing an unmoving bar.
     """
     findings: list[dict] = []
     statuses: list[dict] = []
+    total = len(CHECK_MODULES)
 
-    for module in CHECK_MODULES:
+    for index, module in enumerate(CHECK_MODULES):
+        short_name = module.__name__.rsplit(".", 1)[-1]
+        if on_progress:
+            try:
+                on_progress(CHECK_LABELS_FR.get(short_name, short_name), index, total)
+            except Exception:
+                pass
         try:
             result: CheckResult = module.run(profile)
         except Exception as exc:  # a single check must never crash the whole scan
@@ -137,14 +161,14 @@ def collect_findings(profile: profiles.ScanProfile) -> tuple[list[dict], list[di
     return findings, statuses
 
 
-def build_report(profile_name: str = "local") -> dict:
+def build_report(profile_name: str = "local", on_progress=None) -> dict:
     """Run a scan and return the report without touching the database.
 
     This is what the verification client sends back: it never writes to the
     local dashboard database, it just produces the payload.
     """
     profile = profiles.BY_NAME[profile_name]
-    findings, statuses = collect_findings(profile)
+    findings, statuses = collect_findings(profile, on_progress)
     score = score_findings(findings)
     verdict, explanation = verdict_for(findings)
 

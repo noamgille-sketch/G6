@@ -2,31 +2,35 @@ services:
   - type: web
     name: g6-guard
     runtime: python
-    # "free" works for trying it out. The persistent disk below needs a paid
-    # plan; on free, delete the whole `disk:` block and the G6_DB_PATH
-    # variable - everything still runs, but the database (scan history and
-    # pending links) is wiped on every restart and redeploy.
-    plan: starter
+    # Free plan: no permanent disk, and the container is replaced when the
+    # service sleeps or redeploys. Scan results are therefore lost on a
+    # restart - which is fine when you only need the verdict as it arrives.
+    #
+    # Verification links survive it: they are signed with G6_SECRET_KEY and
+    # carry their own data, so a link keeps working even when the database
+    # behind it is gone. The one consequence is that after a restart a link
+    # can be used a second time, because "already used" was stored in that
+    # database.
+    #
+    # For permanent history, switch plan to "starter" and add:
+    #   disk:
+    #     name: g6-data
+    #     mountPath: /var/g6data
+    #     sizeGB: 1
+    #   and an env var G6_DB_PATH = /var/g6data/g6guard.sqlite3
+    plan: free
     buildCommand: pip install -r requirements.txt && python fetch_scanner.py
     startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
-    disk:
-      name: g6-data
-      mountPath: /var/g6data
-      sizeGB: 1
     envVars:
-      # Keeps the database on the persistent disk, away from the signature
-      # files that ship in data/.
-      - key: G6_DB_PATH
-        value: /var/g6data/g6guard.sqlite3
-
-      # Accounts. Set ONE of these in the Render dashboard.
-      #   Simple:  G6_ACCOUNTS = noam:monmotdepasse,collegue:sonmotdepasse
-      #   Safer:   G6_USERS    = output of `python manage.py hash-password`
-      # The app refuses to start if neither is set.
+      # Accounts. Set this in the Render dashboard.
+      #   G6_ACCOUNTS = noam:monmotdepasse,collegue:sonmotdepasse
+      # The app refuses to start without it.
       - key: G6_ACCOUNTS
         sync: false
 
-      # Signs login sessions. Any long random string; Render can make one.
+      # Signs both the login sessions and the verification links. Render
+      # generates it once and keeps it, so links stay valid across restarts.
+      # Changing it invalidates every link already sent.
       - key: G6_SECRET_KEY
         generateValue: true
 

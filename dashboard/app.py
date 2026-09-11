@@ -14,7 +14,7 @@ from flask import (
 )
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from g6_anticheat import auth, db, profile as profiles
+from g6_anticheat import auth, db, profile as profiles, tokens
 from g6_anticheat.engine import persist_report, run_scan
 from g6_anticheat.submission import InvalidSubmission, clean_report
 
@@ -180,6 +180,42 @@ def _is_expired(verification) -> bool:
         return False
 
 
+DEFAULT_MAX_AGE = DEFAULT_LINK_HOURS * 3600
+MAX_LINK_AGE = 14 * 24 * 3600
+
+
+def _resolve_verification(token: str) -> dict | None:
+    """Find a link by token, from the database or from the token itself.
+
+    The database row is authoritative when it exists - it carries the
+    status, so a used link stays used. When the row is gone (free hosting
+    wipes it on restart), the signature alone still proves the link is
+    genuine, so it keeps working instead of 404-ing.
+    """
+    row = db.get_verification_by_token(token)
+    if row:
+        return row
+
+    payload = tokens.read_token(app.secret_key, token, MAX_LINK_AGE)
+    if not payload:
+        return None
+
+    return {
+        "id": None,
+        "token": token,
+        "label": payload["label"],
+        "note": payload["note"],
+        "created_at": "",
+        "expires_at": None,
+        "status": "pending",
+        "submitted_at": None,
+        "client_label": None,
+        "client_platform": None,
+        "scan_id": None,
+        "from_signature": True,
+    }
+
+
 @app.route("/")
 @login_required
 def index():
@@ -236,7 +272,8 @@ def create_verification():
     hours = request.form.get("hours", type=int) or DEFAULT_LINK_HOURS
     hours = max(1, min(hours, 24 * 14))
 
-    token = secrets.token_urlsafe(32)
+    # Signed so the link survives a restart that wipes the database.
+    token = tokens.make_token(app.secret_key, label, note)
     expires_at = (datetime.now(timezone.utc) + timedelta(hours=hours)).isoformat()
     vid = db.create_verification(token, label, note, expires_at)
     return redirect(url_for("verification_detail", verification_id=vid))
@@ -285,7 +322,7 @@ def revoke_verification(verification_id):
 def verify_landing(token):
     """What the person you sent the link to sees."""
     db.init_db()
-    verification = db.get_verification_by_token(token)
+    verification = _resolve_verification(token)
     if not verification:
         abort(404)
 
@@ -312,7 +349,7 @@ def download_scanner(token):
     done. One build serves every link.
     """
     db.init_db()
-    verification = db.get_verification_by_token(token)
+    verification = _resolve_verification(token)
     if not verification:
         abort(404)
     if verification["status"] != "pending" or _is_expired(verification):
@@ -342,7 +379,7 @@ def _scanner_path() -> str | None:
 def verify_manifest(token):
     """Consulted by the client before it scans, so it can show what it will send."""
     db.init_db()
-    verification = db.get_verification_by_token(token)
+    verification = _resolve_verification(token)
     if not verification:
         return jsonify({"error": "unknown verification link"}), 404
 
@@ -360,7 +397,7 @@ def verify_manifest(token):
 @app.route("/api/verify/<token>/submit", methods=["POST"])
 def verify_submit(token):
     db.init_db()
-    verification = db.get_verification_by_token(token)
+    verification = _resolve_verification(token)
     if not verification:
         return jsonify({"error": "unknown verification link"}), 404
     if verification["status"] != "pending":
@@ -375,15 +412,17 @@ def verify_submit(token):
 
     client_label = report["client_label"] or verification["label"]
     scan_id = persist_report(report, source="remote", client_label=client_label)
+
+    # The row is gone (restart wiped it) but the signature was valid, so
+    # recreate it - otherwise the result would have nowhere to appear.
+    if verification.get("from_signature"):
+        db.create_verification(token, verification["label"], verification["note"], None)
+
     db.complete_verification(token, scan_id, client_label, report["platform"])
 
-    return jsonify({
-        "ok": True,
-        "verdict": report["verdict"],
-        "risk_score": report["risk_score"],
-        "risk_label": report["risk_label"],
-        "findings_sent": len(report["findings"]),
-    })
+    # Deliberately terse: the scanned person's client gets no verdict back,
+    # so nothing can be read off the response either.
+    return jsonify({"ok": True})
 
 
 def main():

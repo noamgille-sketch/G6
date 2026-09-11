@@ -82,35 +82,32 @@ def print_consent(manifest: dict, base_url: str):
         print(f"  - {item}")
 
     print(
-        "\nLe rapport complet est d'abord écrit dans un fichier sur TON disque."
-        "\nTu peux l'ouvrir et lire chaque ligne avant que quoi que ce soit soit envoyé."
+        "\nLe résultat part directement à la personne qui a demandé la vérification."
+        "\nIl ne s'affiche pas ici et n'est pas écrit sur ce PC : si tu pouvais le lire"
+        "\nd'abord, il suffirait de ne pas l'envoyer, et la vérification ne vaudrait rien."
     )
 
 
-def save_report(report: dict) -> str:
-    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    path = os.path.abspath(f"g6-report-{stamp}.json")
-    with open(path, "w", encoding="utf-8") as fh:
-        json.dump(report, fh, indent=2, ensure_ascii=False)
-    return path
-
-
 def summarise(report: dict):
-    findings = report["findings"]
-    print("\n" + "=" * 70)
-    print(f"  VERDICT : {report['verdict']}  ({report['risk_score']}/100)")
-    print("=" * 70)
-    for line in textwrap.wrap(report["verdict_detail"], width=68):
-        print(f"  {line}")
+    """Counts only - never the findings themselves.
 
-    if report["detected_cheats"]:
-        print("\n  Cheats identifiés : " + ", ".join(report["detected_cheats"]))
+    The person being verified must not be able to read the verdict before
+    deciding to send it, otherwise a bad result is simply never sent. Same
+    rule as the graphical scanner; if this printed the detail, anyone could
+    use this script to preview instead.
+    """
+    checked = sum(1 for c in report["checks"] if c["ran"])
+    skipped = [c for c in report["checks"] if not c["ran"]]
 
-    print(f"\n{len(findings)} élément(s) à envoyer :\n")
-    if not findings:
-        print("  (rien de suspect trouvé)")
-    for f in findings:
-        print(f"  [{f['severity_label']}] {f['title']}")
+    print(f"\nScan terminé. {checked} vérification(s) effectuée(s), "
+          f"{len(report['findings'])} élément(s) relevé(s).")
+    print("Le détail n'est pas affiché ici : il part directement à la personne "
+          "qui a demandé la vérification.")
+
+    if skipped:
+        print("\nVérifications ignorées :")
+        for c in skipped:
+            print(f"  - {c['name']} : {c['skip_reason']}")
 
 
 def ask_yes(prompt: str) -> bool:
@@ -157,15 +154,13 @@ def main():
     report["client_label"] = display_name
 
     summarise(report)
-    path = save_report(report)
-    print(f"\nRapport complet écrit dans :\n  {path}")
 
     if args.dry_run:
-        print("\n--dry-run : rien n'a été envoyé.")
+        print("\n--dry-run : rien n'a été envoyé, et rien n'a été écrit sur le disque.")
         return 0
 
-    if not ask_yes("Envoyer ce rapport maintenant ?"):
-        print("Non envoyé. Le fichier ci-dessus reste sur ton disque, supprime-le quand tu veux.")
+    if not ask_yes("Envoyer le résultat maintenant ?"):
+        print("Non envoyé. Rien n'a quitté ce PC.")
         return 0
 
     try:
@@ -176,8 +171,7 @@ def main():
     except urllib.error.URLError as exc:
         raise SystemExit(f"Impossible de joindre {base_url} : {exc.reason}")
 
-    print(f"\nEnvoyé. Verdict : {result.get('verdict', '?')} ({result.get('risk_score')}/100)")
-    print("Ce lien est maintenant consommé et ne peut plus être réutilisé.")
+    print("\nRésultat transmis. Ce lien est maintenant utilisé et ne peut plus resservir.")
     return 0
 
 
