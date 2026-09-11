@@ -99,6 +99,13 @@ DEFAULT_LINK_HOURS = 24
 CHECK_INFO = [
     ("cheat_scan", "Cheats identifiés",
      "Programmes, fichiers et dossiers portant le nom d'un cheat connu."),
+    ("execution_history", "Cheats exécutés puis supprimés",
+     "Windows garde trace de chaque programme lancé (Prefetch, BAM, UserAssist, "
+     "corbeille). Supprimer le cheat n'efface pas ces traces — c'est ici qu'on "
+     "rattrape quelqu'un qui a fait le ménage avant le scan."),
+    ("tampering", "Effacement de traces",
+     "Signes que l'enregistrement des programmes exécutés a été désactivé ou "
+     "vidé récemment."),
     ("memory", "Code injecté dans le jeu",
      "Modules chargés puis effacés du disque, et code mappé directement en "
      "mémoire sans passer par un fichier - les deux façons dont un cheat "
@@ -243,11 +250,12 @@ def verification_detail(verification_id):
     if not verification:
         abort(404)
 
-    findings, statuses, scan = [], [], None
+    findings, statuses, scan, same_machine = [], [], None, []
     if verification["scan_id"]:
         scan = db.get_scan(verification["scan_id"])
         findings = _sorted(db.get_findings(verification["scan_id"]))
         statuses = db.get_check_statuses(verification["scan_id"])
+        same_machine = db.scans_for_machine(scan.get("machine_id"), scan["id"])
 
     return render_template(
         "verification_detail.html",
@@ -262,6 +270,7 @@ def verification_detail(verification_id):
         counts=_severity_counts(findings),
         statuses=statuses,
         check_labels=CHECK_LABELS,
+        same_machine=same_machine,
     )
 
 

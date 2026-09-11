@@ -2,16 +2,18 @@ import platform
 
 import psutil
 
-from . import db, profile as profiles
+from . import db, hwid, profile as profiles
 from .checks import (
-    autoruns, cheat_scan, drivers, filesystem, fivem_integrity, memory, network, processes,
+    autoruns, cheat_scan, drivers, execution_history, filesystem, fivem_integrity,
+    memory, network, processes, tampering,
 )
 from .checks.base import CheckResult, Severity
 from .config import GAME_PROCESS_NAMES
 from .privacy import redact_evidence, redact_path
 
 CHECK_MODULES = [
-    cheat_scan, processes, memory, drivers, autoruns, filesystem, fivem_integrity, network,
+    cheat_scan, execution_history, tampering, memory, drivers, fivem_integrity,
+    processes, filesystem, autoruns, network,
 ]
 
 # Final verdict shown at the top of the dashboard.
@@ -149,6 +151,7 @@ def build_report(profile_name: str = "local") -> dict:
     return {
         "profile": profile.name,
         "platform": platform.system() or "unknown",
+        "machine_id": hwid.fingerprint(),
         "game_running": _game_is_running(),
         "risk_score": score,
         "risk_label": risk_label(score),
@@ -163,7 +166,8 @@ def build_report(profile_name: str = "local") -> dict:
 def persist_report(report: dict, source: str = "local", client_label: str | None = None) -> int:
     """Write a report into the database and return the new scan id."""
     db.init_db()
-    scan_id = db.create_scan(source=source, client_label=client_label)
+    scan_id = db.create_scan(source=source, client_label=client_label,
+                             machine_id=report.get("machine_id"))
 
     for status in report["checks"]:
         db.set_check_status(scan_id, status["name"], status["ran"], status["skip_reason"])

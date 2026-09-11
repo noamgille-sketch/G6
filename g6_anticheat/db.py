@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS scans (
     client_label TEXT,
     verdict TEXT,
     verdict_detail TEXT,
-    detected_cheats TEXT
+    detected_cheats TEXT,
+    machine_id TEXT
 );
 
 CREATE TABLE IF NOT EXISTS verifications (
@@ -87,18 +88,34 @@ def init_db():
             ("verdict", "TEXT"),
             ("verdict_detail", "TEXT"),
             ("detected_cheats", "TEXT"),
+            ("machine_id", "TEXT"),
         ):
             if column not in existing:
                 conn.execute(f"ALTER TABLE scans ADD COLUMN {column} {ddl}")
 
 
-def create_scan(source: str = "local", client_label: str | None = None) -> int:
+def create_scan(source: str = "local", client_label: str | None = None,
+                machine_id: str | None = None) -> int:
     with get_connection() as conn:
         cur = conn.execute(
-            "INSERT INTO scans (started_at, source, client_label) VALUES (?, ?, ?)",
-            (_now(), source, client_label),
+            "INSERT INTO scans (started_at, source, client_label, machine_id) VALUES (?, ?, ?, ?)",
+            (_now(), source, client_label, machine_id),
         )
         return cur.lastrowid
+
+
+def scans_for_machine(machine_id: str, exclude_scan_id: int | None = None):
+    """Other scans seen from the same PC - how you spot someone coming back."""
+    if not machine_id:
+        return []
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT s.id, s.started_at, s.verdict, s.client_label, v.label AS verification_label "
+            "FROM scans s LEFT JOIN verifications v ON v.scan_id = s.id "
+            "WHERE s.machine_id = ? AND s.id != ? ORDER BY s.id DESC LIMIT 20",
+            (machine_id, exclude_scan_id or -1),
+        ).fetchall()
+        return [dict(r) for r in rows]
 
 
 def finish_scan(

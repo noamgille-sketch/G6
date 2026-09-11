@@ -18,8 +18,8 @@ MAX_LABEL = 80
 
 VALID_SEVERITIES = {s.name: s.value for s in Severity}
 VALID_CHECK_NAMES = {
-    "cheat_scan", "processes", "memory", "drivers", "autoruns", "filesystem",
-    "fivem_integrity", "network",
+    "cheat_scan", "execution_history", "tampering", "processes", "memory",
+    "drivers", "autoruns", "filesystem", "fivem_integrity", "network",
 }
 VALID_STRENGTHS = {"CONFIRMED", "STRONG", "MODERATE"}
 
@@ -115,11 +115,15 @@ def clean_report(payload) -> dict:
     verdict, verdict_detail = verdict_for(findings)
     client_platform = payload.get("platform")
     client_label = payload.get("client_label")
+    machine_id = payload.get("machine_id")
+    if not isinstance(machine_id, str) or not machine_id.isalnum() or len(machine_id) > 64:
+        machine_id = None
 
     return {
         "profile": "remote",
         "platform": _text(client_platform, 40, "platform") if isinstance(client_platform, str) else "unknown",
         "client_label": _text(client_label, MAX_LABEL, "client_label") if isinstance(client_label, str) else None,
+        "machine_id": machine_id,
         "game_running": bool(payload.get("game_running")),
         "risk_score": score,
         "risk_label": risk_label(score),

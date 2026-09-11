@@ -25,6 +25,8 @@ un signal utile, pas une garantie à 100 %.
 | Check | Fichier | Ce qu'il regarde |
 |---|---|---|
 | `cheat_scan` | `g6_anticheat/checks/cheat_scan.py` | **Identifie le cheat par son nom** : process, fichiers et dossiers correspondant à une famille connue (voir plus bas) |
+| `execution_history` | `g6_anticheat/checks/execution_history.py` | **Cheats exécutés puis supprimés.** Prefetch, BAM, UserAssist, MUICache, corbeille — Windows garde trace de tout programme lancé, et supprimer le fichier n'efface pas ces traces |
+| `tampering` | `g6_anticheat/checks/tampering.py` | **Effacement de traces** : Prefetch désactivé ou vidé, SysMain/EventLog coupés, corbeille vidée juste avant le scan |
 | `processes` | `g6_anticheat/checks/processes.py` | Noms de process / lignes de commande matchant des mots-clés connus (injector, loader, spoofer, hwid...), process lancés depuis Temp/Downloads pendant que le jeu tourne |
 | `memory` | `g6_anticheat/checks/memory.py` | **Windows only.** Modules "fantômes" (DLL chargée en mémoire mais supprimée du disque) et mémoire exécutable privée non backée par un fichier (signature classique du manual mapping) dans `FiveM_GTAProcess.exe` / `GTA5.exe` |
 | `drivers` | `g6_anticheat/checks/drivers.py` | **Windows only.** Drivers kernel chargés qui matchent la liste noire de drivers vulnérables (technique BYOVD), + drivers chargés hors de `System32\drivers` |
@@ -38,6 +40,47 @@ le score de risque du scan est la somme des sévérités plafonnée à 100.
 
 Les checks marqués **Windows only** sont automatiquement skip (avec la raison
 affichée dans le dashboard) sur un autre OS.
+
+## Le cheat supprimé avant le scan
+
+C'est le cas qui compte vraiment. Trouver un cheat posé sur le disque n'attrape
+que les distraits : n'importe qui le supprime avant de se faire vérifier.
+
+Windows, lui, conserve plusieurs registres de **tout programme ayant été
+exécuté**, et supprimer le fichier ne les efface pas :
+
+| Source | Ce que c'est | Admin requis |
+|---|---|---|
+| Prefetch | Fichier écrit au premier lancement de chaque programme | oui |
+| BAM | Chemins complets + date de dernier lancement | oui |
+| UserAssist | Programmes lancés depuis l'explorateur (encodés en ROT13) | non |
+| MUICache | Noms des exécutables ayant tourné | non |
+| Corbeille | Les enregistrements `$I` nomment le fichier d'origine | non |
+
+Le check `execution_history` lit ces sources et **ne remonte que les
+correspondances** avec un cheat connu. La liste complète des programmes est lue
+en mémoire, comparée, puis jetée — elle n'est ni envoyée ni stockée. Le rapport
+indique seulement combien d'entrées ont été examinées.
+
+Et parce que ces traces ne valent que si elles sont intactes, le check
+`tampering` regarde si quelqu'un a fait le ménage : Prefetch désactivé dans le
+registre, service SysMain ou EventLog coupé, dossier Prefetch vide ou quasi
+vide, corbeille vidée dans les deux heures précédant le scan. Un PC dont la
+piste forensique a été effacée juste avant une vérification, c'est un résultat
+en soi.
+
+**Pas encore implémenté :** Amcache, ShimCache et le journal USN contiennent le
+même type de preuve, mais demandent de parser des ruches de registre hors ligne
+ou de lire le NTFS brut. Ils sont annoncés comme non analysés dans le rapport
+plutôt qu'ignorés en silence.
+
+## Reconnaître la même machine
+
+Chaque scan remonte une **empreinte anonyme** du PC (`g6_anticheat/hwid.py`) :
+un hash à sens unique du GUID d'installation Windows et du numéro de série du
+volume. Le dashboard peut dire « ce PC a déjà été vérifié le 3 mars sous un
+autre pseudo », sans jamais détenir de numéro de série réel. C'est ce qui
+repère quelqu'un qui revient sous un autre nom.
 
 ## Verdict et identification du cheat
 

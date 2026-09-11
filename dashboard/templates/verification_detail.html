@@ -51,6 +51,35 @@
 
 {{ results.metrics(scan, counts, findings) }}
 
+{% if same_machine %}
+<div class="card" style="border-left:3px solid var(--accent)">
+  <h3>Déjà vu : {{ same_machine|length }} autre(s) scan(s) depuis ce PC</h3>
+  <p class="muted" style="margin-bottom:12px">
+    L'empreinte anonyme de la machine correspond à des vérifications précédentes.
+    C'est ce qui permet de repérer quelqu'un qui revient sous un autre pseudo.
+  </p>
+  <div class="table-wrap">
+    <table class="scan-table small">
+      <thead><tr><th>Scan</th><th>Date</th><th>Pseudo</th><th>Verdict</th></tr></thead>
+      <tbody>
+        {% for other in same_machine %}
+        <tr>
+          <td class="num"><a class="link" href="{{ url_for('scan_detail', scan_id=other.id) }}">#{{ other.id }}</a></td>
+          <td class="num muted">{{ other.started_at[:16]|replace("T", " ") }}</td>
+          <td>{{ other.client_label or other.verification_label or "—" }}</td>
+          <td>
+            {% if other.verdict %}
+              <span class="verdict-chip verdict-{{ other.verdict|lower|replace(' ', '-') }}">{{ other.verdict }}</span>
+            {% else %}<span class="muted">—</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
 <p class="notice">
   Ce résultat a été produit sur la machine de quelqu'un d'autre et rapporté par
   son scanner. Le score et le verdict sont recalculés ici, donc personne ne peut
