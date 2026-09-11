@@ -4,3 +4,7 @@ __pycache__/
 venv/
 data/*.sqlite3
 g6-report-*.json
+bin/*.exe
+build/
+dist/
+*.spec

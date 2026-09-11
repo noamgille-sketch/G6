@@ -5,7 +5,14 @@ APP_NAME = "G6 Guard"
 
 IS_WINDOWS = platform.system() == "Windows"
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+import sys
+
+# When packaged by PyInstaller the bundled files are unpacked into a temp
+# folder that sys._MEIPASS points at, not next to the executable.
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    BASE_DIR = sys._MEIPASS
+else:
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Signature files ship with the code and are read-only.
 DATA_DIR = os.path.join(BASE_DIR, "data")

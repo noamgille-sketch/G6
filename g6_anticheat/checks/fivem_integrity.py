@@ -50,8 +50,34 @@ def run(profile: ScanProfile) -> CheckResult:
     if not os.path.isdir(plugins_dir):
         return CheckResult("fivem_integrity", ran=False, skip_reason="FiveM plugins folder not found")
 
-    is_first_run = db.baseline_count() == 0
     findings: list[Finding] = []
+
+    if not profile.use_baseline:
+        # One-shot scan: nothing to compare against, so report what is there
+        # and let whoever reads it judge. Named cheats in this folder are
+        # caught separately by the cheat_scan check.
+        for fname in sorted(os.listdir(plugins_dir)):
+            if os.path.splitext(fname)[1].lower() not in PLUGIN_EXTS:
+                continue
+            full_path = os.path.join(plugins_dir, fname)
+            digest = _sha256(full_path)
+            findings.append(
+                Finding(
+                    check="fivem_integrity",
+                    title=f"Plugin FiveM installé : {fname}",
+                    detail=(
+                        f"'{full_path}' est chargé par FiveM au lancement. FiveM "
+                        "charge tout ce qui se trouve dans ce dossier, c'est le point "
+                        "d'entrée habituel des menus ASI. Vérifie que tu reconnais "
+                        "ce plugin."
+                    ),
+                    severity=Severity.INFO,
+                    evidence={"path": full_path, "sha256": digest},
+                )
+            )
+        return CheckResult("fivem_integrity", ran=True, skip_reason=None, findings=findings)
+
+    is_first_run = db.baseline_count() == 0
 
     for fname in os.listdir(plugins_dir):
         ext = os.path.splitext(fname)[1].lower()

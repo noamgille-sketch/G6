@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from flask import (
-    Flask, abort, jsonify, render_template, request, redirect, session, url_for,
+    Flask, abort, jsonify, render_template, request, redirect, send_file, session, url_for,
 )
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -94,6 +94,53 @@ def logout():
 SEVERITY_ORDER = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]
 DEFAULT_LINK_HOURS = 24
 
+# Each check, in the order a reader should work through them: what it is
+# called on screen, and what it actually looked at.
+CHECK_INFO = [
+    ("cheat_scan", "Cheats identifiés",
+     "Programmes, fichiers et dossiers portant le nom d'un cheat connu."),
+    ("memory", "Code injecté dans le jeu",
+     "Modules chargés puis effacés du disque, et code mappé directement en "
+     "mémoire sans passer par un fichier - les deux façons dont un cheat "
+     "s'installe dans le processus du jeu."),
+    ("drivers", "Pilotes système",
+     "Pilotes kernel chargés correspondant à la liste des pilotes détournés "
+     "pour obtenir un accès kernel (technique BYOVD)."),
+    ("fivem_integrity", "Plugins FiveM",
+     "Contenu du dossier plugins de FiveM, chargé automatiquement au lancement."),
+    ("processes", "Programmes suspects",
+     "Noms et emplacements des programmes en cours d'exécution."),
+    ("filesystem", "Fichiers suspects",
+     "Noms de fichiers correspondant à des schémas de cheats, et empreintes "
+     "comparées à la liste noire."),
+    ("autoruns", "Démarrage automatique",
+     "Programmes lancés à l'ouverture de session."),
+    ("network", "Connexions réseau",
+     "Connexions sortantes du jeu. Désactivé pour les scans à distance."),
+]
+CHECK_LABELS = {name: (label, desc) for name, label, desc in CHECK_INFO}
+
+
+def _group_findings(findings):
+    """Group findings by check, in reading order, for the detail pages."""
+    groups = []
+    for name, label, desc in CHECK_INFO:
+        matching = [f for f in findings if f["check"] == name]
+        if matching:
+            groups.append({"name": name, "label": label, "desc": desc, "findings": matching})
+    known = {name for name, _, _ in CHECK_INFO}
+    leftovers = [f for f in findings if f["check"] not in known]
+    if leftovers:
+        groups.append({"name": "autre", "label": "Autres", "desc": "", "findings": leftovers})
+    return groups
+
+
+def _severity_counts(findings):
+    counts = {label: 0 for label in SEVERITY_ORDER}
+    for f in findings:
+        counts[f["severity_label"]] = counts.get(f["severity_label"], 0) + 1
+    return counts
+
 
 def _public_base_url() -> str:
     """Base URL handed to the person you send the link to.
@@ -146,11 +193,15 @@ def scan_detail(scan_id):
     scan = db.get_scan(scan_id)
     if not scan:
         abort(404)
+    findings = _sorted(db.get_findings(scan_id))
     return render_template(
         "scan_detail.html",
         scan=scan,
-        findings=_sorted(db.get_findings(scan_id)),
+        findings=findings,
+        groups=_group_findings(findings),
+        counts=_severity_counts(findings),
         statuses=db.get_check_statuses(scan_id),
+        check_labels=CHECK_LABELS,
     )
 
 
@@ -202,10 +253,15 @@ def verification_detail(verification_id):
         "verification_detail.html",
         v=verification,
         link=_verification_link(verification["token"]),
+        download_link=f"{_public_base_url()}/download/{verification['token']}",
+        scanner_ready=_scanner_path() is not None,
         expired=_is_expired(verification),
         scan=scan,
         findings=findings,
+        groups=_group_findings(findings),
+        counts=_severity_counts(findings),
         statuses=statuses,
+        check_labels=CHECK_LABELS,
     )
 
 
@@ -234,7 +290,43 @@ def verify_landing(token):
         never_collects=profiles.REMOTE_NEVER_COLLECTS,
         privacy_headline=profiles.PRIVACY_HEADLINE,
         privacy_summary=profiles.PRIVACY_SUMMARY,
+        scanner_ready=_scanner_path() is not None,
     )
+
+
+@app.route("/download/<token>")
+def download_scanner(token):
+    """Serve the scanner named after the token.
+
+    The executable reads the token back out of its own filename, so the
+    person never has to copy or paste anything - download, double-click,
+    done. One build serves every link.
+    """
+    db.init_db()
+    verification = db.get_verification_by_token(token)
+    if not verification:
+        abort(404)
+    if verification["status"] != "pending" or _is_expired(verification):
+        abort(410)
+
+    exe_path = _scanner_path()
+    if not exe_path:
+        abort(503)
+
+    return send_file(
+        exe_path,
+        as_attachment=True,
+        download_name=f"G6Scan-{token}.exe",
+        mimetype="application/vnd.microsoft.portable-executable",
+    )
+
+
+def _scanner_path() -> str | None:
+    """Where the built G6Scan.exe lives, if it has been added."""
+    candidate = os.environ.get("G6_SCANNER_PATH") or os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "bin", "G6Scan.exe"
+    )
+    return candidate if os.path.isfile(candidate) else None
 
 
 @app.route("/api/verify/<token>")

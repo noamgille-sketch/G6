@@ -1,0 +1,79 @@
+name: Build G6Scan.exe
+
+# Builds the standalone Windows scanner. A Windows .exe can only be built
+# on Windows, so this runs on a windows runner and publishes the result as
+# a downloadable artifact (and attaches it to a release when tagged).
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "scanner_app.py"
+      - "g6_anticheat/**"
+      - "data/*.json"
+      - ".github/workflows/build-scanner.yml"
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install psutil pywin32 pyinstaller
+
+      - name: Bake in the dashboard address
+        shell: pwsh
+        env:
+          # Set this as a repository variable: Settings > Secrets and
+          # variables > Actions > Variables > New variable
+          #   name  G6_SERVER_URL
+          #   value https://your-dashboard.onrender.com
+          SERVER_URL: ${{ vars.G6_SERVER_URL }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:SERVER_URL)) {
+            Write-Host "::warning::G6_SERVER_URL is not set. The scanner will ask the person to paste the full link instead of reading it from its filename."
+          } else {
+            $file = "scanner_app.py"
+            (Get-Content $file -Raw).Replace("@@SERVER_URL@@", $env:SERVER_URL) | Set-Content $file -NoNewline
+            Write-Host "Baked in $env:SERVER_URL"
+          }
+
+      - name: Build the executable
+        run: >
+          pyinstaller
+          --onefile
+          --windowed
+          --name G6Scan
+          --add-data "data;data"
+          --hidden-import psutil
+          scanner_app.py
+
+      - name: Check it produced something
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "dist/G6Scan.exe")) { throw "G6Scan.exe was not produced" }
+          $size = (Get-Item "dist/G6Scan.exe").Length / 1MB
+          Write-Host ("Built G6Scan.exe ({0:N1} MB)" -f $size)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: G6Scan
+          path: dist/G6Scan.exe
+          retention-days: 90
+
+      - name: Attach to the release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/G6Scan.exe

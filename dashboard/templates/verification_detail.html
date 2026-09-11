@@ -1,99 +1,75 @@
 {% extends "base.html" %}
+{% import "_results.html" as results %}
 {% block content %}
 
-<a class="link back" href="{{ url_for('index') }}">&larr; All verifications</a>
+<a class="link back" href="{{ url_for('index') }}">&larr; Toutes les vérifications</a>
 
 <section class="hero">
   <div>
-    <h1>Verification for {{ v.label or "unnamed" }}</h1>
+    <p class="kicker">Vérification #{{ v.id }}</p>
+    <h1>{{ v.label or "Sans nom" }}</h1>
     <p class="muted">
-      Created {{ v.created_at[:16]|replace("T", " ") }}
-      {% if v.expires_at %} &middot; expires {{ v.expires_at[:16]|replace("T", " ") }}{% endif %}
+      Créée le {{ v.created_at[:16]|replace("T", " ") }}
+      {% if v.expires_at %} &middot; expire le {{ v.expires_at[:16]|replace("T", " ") }}{% endif %}
     </p>
   </div>
   <span class="status status-{{ 'expired' if expired else v.status }} big">
-    {{ "expired" if expired else v.status }}
+    {{ "expirée" if expired else {"pending": "en attente", "completed": "terminée", "revoked": "annulée"}.get(v.status, v.status) }}
   </span>
 </section>
 
 {% if v.status == 'pending' and not expired %}
 <div class="card">
-  <h3>Send this link</h3>
-  <div class="copy-row">
-    <input class="link-input" type="text" value="{{ link }}" readonly onclick="this.select()">
-  </div>
+  <h3>Lien à envoyer</h3>
+  <input class="link-input" type="text" value="{{ link }}" readonly onclick="this.select()">
   <p class="muted">
-    They open it, follow the instructions on that page, and the result lands here.
-    The link works once, then it's used up.
+    La personne l'ouvre, télécharge le scan, le lance. Le lien fonctionne une
+    seule fois puis se consomme.
   </p>
+  {% if not scanner_ready %}
+  <p class="notice notice-warn" style="margin:14px 0">
+    <strong>G6Scan.exe n'est pas encore en place.</strong> La personne verra la
+    page mais ne pourra pas télécharger le scan. Récupère le fichier depuis
+    l'onglet Actions de GitHub et dépose-le dans <code>bin/</code>.
+  </p>
+  {% endif %}
   <form method="post" action="{{ url_for('revoke_verification', verification_id=v.id) }}">
-    <button class="btn btn-danger" type="submit">Revoke this link</button>
+    <button class="btn btn-danger" type="submit">Annuler ce lien</button>
   </form>
 </div>
 {% endif %}
 
 {% if scan %}
-<div class="verdict verdict-{{ (scan.verdict or 'LEGIT')|lower|replace(' ', '-')|replace('é', 'e') }}">
-  <div class="verdict-main">{{ scan.verdict or "?" }}</div>
-  <p class="verdict-detail">{{ scan.verdict_detail }}</p>
-  {% if scan.detected_cheats %}
-  <div class="cheat-list">
-    {% for cheat in scan.detected_cheats %}
-      <span class="cheat-tag">{{ cheat }}</span>
-    {% endfor %}
-  </div>
-  {% endif %}
-</div>
 
-<div class="card">
-  <p class="muted">
-    Score {{ scan.risk_score }}/100 &middot;
-    envoyé le {{ v.submitted_at[:16]|replace("T", " ") }} par "{{ v.client_label }}"
-    sur {{ v.client_platform }} &middot;
-    jeu lancé : {{ "oui" if scan.game_running else "non" }}
-  </p>
-  <p class="notice">
-    Ce résultat vient de la machine de quelqu'un d'autre, rapporté par son client.
-    Quelqu'un de déterminé peut falsifier un scan côté client - à lire comme un
-    signal fort, pas comme une preuve.
-  </p>
-</div>
+{{ results.verdict_block(scan) }}
 
-<h2>Findings ({{ findings|length }})</h2>
+<p class="muted" style="margin-bottom:22px">
+  Envoyé le {{ v.submitted_at[:16]|replace("T", " ") }} par
+  <strong style="color:var(--text)">{{ v.client_label }}</strong>
+  sur {{ v.client_platform }}
+</p>
+
+{{ results.metrics(scan, counts, findings) }}
+
+<p class="notice">
+  Ce résultat a été produit sur la machine de quelqu'un d'autre et rapporté par
+  son scanner. Le score et le verdict sont recalculés ici, donc personne ne peut
+  se déclarer propre — mais quelqu'un de déterminé peut falsifier un scan côté
+  client. À lire comme un signal fort, pas comme une preuve.
+</p>
+
+<h2>Détail des résultats — {{ findings|length }}</h2>
 {% if not findings %}
-  <p class="empty">No findings reported.</p>
+  <p class="empty">Aucun élément relevé sur cette machine.</p>
 {% else %}
-<div class="findings">
-  {% for f in findings %}
-  <details class="finding sev-{{ f.severity_label|lower }}" {% if f.severity_label in ("CRITICAL", "HIGH") %}open{% endif %}>
-    <summary>
-      <span class="badge badge-{{ f.severity_label|lower }}">{{ f.severity_label }}</span>
-      <span class="finding-title">{{ f.title }}</span>
-      <span class="finding-check">{{ f.check }}</span>
-    </summary>
-    <p class="finding-detail">{{ f.detail }}</p>
-    {% if f.evidence %}
-    <pre class="evidence">{{ f.evidence | tojson(indent=2) }}</pre>
-    {% endif %}
-  </details>
-  {% endfor %}
-</div>
+  {{ results.findings_groups(groups) }}
 {% endif %}
 
-<h2>Checks run</h2>
-<table class="scan-table small">
-  <thead><tr><th>Check</th><th>Status</th></tr></thead>
-  <tbody>
-    {% for st in statuses %}
-    <tr>
-      <td>{{ st.name }}</td>
-      <td>{{ "Ran" if st.ran else ("Skipped - " + (st.skip_reason or "n/a")) }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<h2>Vérifications effectuées</h2>
+{{ results.checks_table(statuses, check_labels) }}
+
 {% elif v.status == 'pending' and not expired %}
-  <p class="empty">Waiting for them to run the scan.</p>
+  <p class="empty">En attente : la personne n'a pas encore lancé le scan.</p>
 {% endif %}
 
 {% endblock %}

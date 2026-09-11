@@ -12,7 +12,8 @@
     "(?i)cheat", "(?i)inject", "(?i)loader", "(?i)bypass",
     "(?i)spoofer", "(?i)hwid", "(?i)^external.*\\.(exe|dll)$",
     "(?i)^internal.*\\.(exe|dll)$", "(?i)aimbot", "(?i)esp.*\\.dll",
-    "(?i)menu.*\\.(exe|dll)", "(?i)kdmapper", "(?i)dbk64\\.sys"
+    "(?i)menu.*\\.(exe|dll)", "(?i)kdmapper", "(?i)dbk64\\.sys",
+    "(?i)lua.?executor", "(?i)executor.*\\.(exe|dll)", "(?i)unlocker.*\\.(exe|dll)"
   ],
 
   "known_sha256_blocklist": {

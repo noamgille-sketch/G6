@@ -1,68 +1,31 @@
 {% extends "base.html" %}
+{% import "_results.html" as results %}
 {% block content %}
 
-<a class="link back" href="{{ url_for('index') }}">&larr; All scans</a>
+<a class="link back" href="{{ url_for('index') }}">&larr; Retour</a>
 
 <section class="hero">
   <div>
-    <h1>Scan #{{ scan.id }}</h1>
-    <p class="muted">
-      {{ scan.started_at[:16]|replace("T", " ") }} &middot;
-      {% if scan.source == 'remote' %}reported by "{{ scan.client_label }}"{% else %}this PC{% endif %}
-      &middot; Game running: {{ "Yes" if scan.game_running else "No" }}
-    </p>
+    <p class="kicker">Scan #{{ scan.id }}</p>
+    <h1>
+      {% if scan.source == 'remote' %}{{ scan.client_label }}{% else %}Ce PC{% endif %}
+    </h1>
+    <p class="muted">{{ scan.started_at[:16]|replace("T", " ") }}</p>
   </div>
-  <span class="pill pill-{{ (scan.risk_label or 'clean')|lower|replace(' ', '-') }} big">
-    {{ scan.risk_score if scan.risk_score is not none else "-" }} / 100 &middot; {{ scan.risk_label or "running..." }}
-  </span>
 </section>
 
-{% if scan.verdict %}
-<div class="verdict verdict-{{ scan.verdict|lower|replace(' ', '-') }}">
-  <div class="verdict-main">{{ scan.verdict }}</div>
-  <p class="verdict-detail">{{ scan.verdict_detail }}</p>
-  {% if scan.detected_cheats %}
-  <div class="cheat-list">
-    {% for cheat in scan.detected_cheats %}
-      <span class="cheat-tag">{{ cheat }}</span>
-    {% endfor %}
-  </div>
-  {% endif %}
-</div>
-{% endif %}
+{% if scan.verdict %}{{ results.verdict_block(scan) }}{% endif %}
 
-<h2>Findings ({{ findings|length }})</h2>
+{{ results.metrics(scan, counts, findings) }}
+
+<h2>Détail des résultats — {{ findings|length }}</h2>
 {% if not findings %}
-  <p class="empty">No findings on this scan.</p>
+  <p class="empty">Aucun élément relevé.</p>
 {% else %}
-<div class="findings">
-  {% for f in findings %}
-  <details class="finding sev-{{ f.severity_label|lower }}" {% if f.severity_label in ("CRITICAL", "HIGH") %}open{% endif %}>
-    <summary>
-      <span class="badge badge-{{ f.severity_label|lower }}">{{ f.severity_label }}</span>
-      <span class="finding-title">{{ f.title }}</span>
-      <span class="finding-check">{{ f.check }}</span>
-    </summary>
-    <p class="finding-detail">{{ f.detail }}</p>
-    {% if f.evidence %}
-    <pre class="evidence">{{ f.evidence | tojson(indent=2) }}</pre>
-    {% endif %}
-  </details>
-  {% endfor %}
-</div>
+  {{ results.findings_groups(groups) }}
 {% endif %}
 
-<h2>Checks run</h2>
-<table class="scan-table small">
-  <thead><tr><th>Check</th><th>Status</th></tr></thead>
-  <tbody>
-    {% for st in statuses %}
-    <tr>
-      <td>{{ st.name }}</td>
-      <td>{{ "Ran" if st.ran else ("Skipped - " + (st.skip_reason or "n/a")) }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<h2>Vérifications effectuées</h2>
+{{ results.checks_table(statuses, check_labels) }}
 
 {% endblock %}

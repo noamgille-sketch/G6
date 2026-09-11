@@ -18,6 +18,10 @@ class ScanProfile:
     scan_documents: bool
     include_network: bool
     include_command_lines: bool
+    # A baseline only means something across repeated scans of the same
+    # machine. A one-shot scan run from a link has nothing to compare to, so
+    # it lists what it finds instead.
+    use_baseline: bool
 
 
 LOCAL = ScanProfile(
@@ -26,6 +30,7 @@ LOCAL = ScanProfile(
     scan_documents=True,
     include_network=True,
     include_command_lines=True,
+    use_baseline=True,
 )
 
 REMOTE = ScanProfile(
@@ -34,6 +39,7 @@ REMOTE = ScanProfile(
     scan_documents=False,
     include_network=False,
     include_command_lines=False,
+    use_baseline=False,
 )
 
 BY_NAME = {p.name: p for p in (LOCAL, REMOTE)}

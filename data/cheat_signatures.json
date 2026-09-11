@@ -29,6 +29,48 @@
       "sha256": []
     },
     {
+      "name": "Sasano",
+      "kind": "Menu payant FiveM",
+      "filename_contains": ["sasano", "susano"],
+      "folder_contains": ["sasano", "susano"],
+      "process_exact": ["sasano.exe", "susano.exe"],
+      "sha256": []
+    },
+    {
+      "name": "Keyzer",
+      "kind": "Menu payant FiveM",
+      "filename_contains": ["keyzer"],
+      "folder_contains": ["keyzer"],
+      "process_exact": ["keyzer.exe"],
+      "sha256": []
+    },
+    {
+      "name": "TgModz",
+      "kind": "Menu payant FiveM",
+      "filename_contains": ["tgmodz", "tg-modz"],
+      "folder_contains": ["tgmodz", "tg-modz"],
+      "process_exact": ["tgmodz.exe"],
+      "sha256": []
+    },
+    {
+      "name": "TZ",
+      "kind": "Menu payant FiveM",
+      "_note": "Nom de 2 lettres : correspondance sur nom complet uniquement. En sous-chaine, 'tz' matcherait des centaines de fichiers legitimes.",
+      "filename_exact": ["tz.exe", "tz.dll", "tz.asi", "tzmenu.exe", "tz-menu.exe"],
+      "folder_exact": ["tz", "tzmenu"],
+      "process_exact": ["tz.exe", "tzmenu.exe"],
+      "sha256": []
+    },
+    {
+      "name": "HX",
+      "kind": "Menu payant FiveM",
+      "_note": "Nom de 2 lettres : correspondance sur nom complet uniquement.",
+      "filename_exact": ["hx.exe", "hx.dll", "hx.asi", "hxmenu.exe", "hx-menu.exe"],
+      "folder_exact": ["hx", "hxmenu"],
+      "process_exact": ["hx.exe", "hxmenu.exe"],
+      "sha256": []
+    },
+    {
       "name": "RedEngine",
       "kind": "Menu payant FiveM",
       "filename_contains": ["redengine", "red-engine"],
@@ -83,14 +125,6 @@
       "filename_exact": ["lumia.exe", "lumia.dll", "lumia.asi"],
       "folder_exact": ["lumia"],
       "process_exact": ["lumia.exe"],
-      "sha256": []
-    },
-    {
-      "name": "Susano",
-      "kind": "Menu payant FiveM",
-      "filename_contains": ["susano"],
-      "folder_contains": ["susano"],
-      "process_exact": ["susano.exe"],
       "sha256": []
     },
     {

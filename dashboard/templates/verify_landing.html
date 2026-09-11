@@ -1,21 +1,32 @@
 {% extends "base.html" %}
-{% block title %}Demande de vérification &middot; G6 Guard{% endblock %}
+{% block title %}Vérification FiveM &middot; G6 Guard{% endblock %}
 {% block content %}
 
-<section class="hero">
-  <div>
-    <h1>{{ v.label or "Quelqu'un" }} te demande de vérifier ce PC</h1>
-    <p class="muted">Un contrôle ponctuel pour les cheats FiveM. Tu gardes le contrôle sur ce qui est envoyé.</p>
-  </div>
-</section>
-
 {% if expired %}
-  <p class="notice notice-warn">Ce lien a expiré. Demande-lui un nouveau lien.</p>
+  <div class="state-card state-warn">
+    <h1>Ce lien a expiré</h1>
+    <p>Demande un nouveau lien à la personne qui te l'a envoyé.</p>
+  </div>
 {% elif v.status == 'completed' %}
-  <p class="notice notice-ok">Cette vérification est déjà faite. Il n'y a plus rien à faire.</p>
+  <div class="state-card state-ok">
+    <h1>Vérification terminée</h1>
+    <p>Le résultat a bien été transmis. Il n'y a plus rien à faire.</p>
+  </div>
 {% elif v.status == 'revoked' %}
-  <p class="notice notice-warn">Ce lien a été annulé par la personne qui l'a créé.</p>
+  <div class="state-card state-warn">
+    <h1>Ce lien a été annulé</h1>
+    <p>La personne qui l'a créé l'a désactivé.</p>
+  </div>
 {% else %}
+
+<section class="verify-hero">
+  <p class="kicker">Demande de vérification</p>
+  <h1>{{ v.label or "Quelqu'un" }} te demande de vérifier ce PC</h1>
+  <p class="verify-sub">
+    Un contrôle ponctuel pour les cheats FiveM. Ça prend une minute, et tu vois
+    tout ce qui sera envoyé avant que ça parte.
+  </p>
+</section>
 
 <div class="privacy-banner">
   <h2>{{ privacy_headline }}</h2>
@@ -23,51 +34,67 @@
 </div>
 
 {% if v.note %}
-<div class="card">
-  <h3>Son message</h3>
+<div class="note-card">
+  <span class="note-label">Son message</span>
   <p>{{ v.note }}</p>
 </div>
 {% endif %}
 
-<div class="two-col">
-  <div class="card card-ok">
+<section class="dl-section">
+  {% if scanner_ready %}
+    <a class="dl-button" href="{{ url_for('download_scanner', token=token) }}">
+      <span class="dl-icon" aria-hidden="true">&#8595;</span>
+      <span class="dl-text">
+        <strong>Télécharger le scan</strong>
+        <small>G6Scan.exe &middot; Windows &middot; rien à installer</small>
+      </span>
+    </a>
+    <ol class="dl-steps">
+      <li>Télécharge le fichier.</li>
+      <li>Double-clique dessus. Une fenêtre s'ouvre et t'explique tout.</li>
+      <li>Clique sur <strong>Lancer le scan</strong>, puis sur <strong>Envoyer</strong> si tu es d'accord.</li>
+    </ol>
+    <p class="dl-note">
+      Windows peut afficher un avertissement « éditeur inconnu » : c'est normal
+      pour un programme qui n'est pas signé par un éditeur commercial. Clique sur
+      <em>Informations complémentaires</em> puis <em>Exécuter quand même</em>.
+    </p>
+  {% else %}
+    <div class="note-card">
+      <span class="note-label">Scanner pas encore disponible</span>
+      <p>
+        Le programme de scan n'a pas encore été mis en ligne sur ce dashboard.
+        Préviens la personne qui t'a envoyé ce lien — elle doit déposer
+        <code>G6Scan.exe</code> dans le dossier <code>bin/</code>.
+      </p>
+    </div>
+  {% endif %}
+</section>
+
+<section class="cols">
+  <div class="col col-ok">
     <h3>Ce qui est regardé</h3>
     <ul>
       {% for item in collects %}<li>{{ item }}</li>{% endfor %}
     </ul>
   </div>
-  <div class="card card-no">
+  <div class="col col-no">
     <h3>Ce qui n'est jamais touché</h3>
     <ul>
       {% for item in never_collects %}<li>{{ item }}</li>{% endfor %}
     </ul>
   </div>
-</div>
+</section>
 
-<div class="card">
-  <h3>Comment le lancer</h3>
-  <p class="muted">Il te faut Python 3.10 ou plus. Tout s'exécute sur ta machine.</p>
-  <ol class="steps">
-    <li>Récupère le dossier G6 Guard (la personne qui t'a envoyé ce lien l'a).</li>
-    <li>Ouvre un terminal dans ce dossier et installe les dépendances :
-      <pre class="cmd">pip install -r requirements.txt</pre>
-    </li>
-    <li>Lance la vérification :
-      <pre class="cmd">python verify_client.py {{ link }}</pre>
-    </li>
-  </ol>
-  <p class="muted">
-    Le scan écrit le rapport complet dans un fichier sur <strong>ton propre disque</strong> et
-    affiche chaque résultat avant d'envoyer quoi que ce soit. Rien n'est transmis tant que
-    tu n'as pas tapé <strong>oui</strong>. Tu veux le voir sans rien envoyer ? Ajoute
-    <code>--dry-run</code>.
+<details class="adv">
+  <summary>Tu préfères lancer le scan toi-même depuis le code source ?</summary>
+  <p>
+    Si tu ne veux pas exécuter un binaire, tu peux faire tourner exactement le
+    même scan depuis les sources, avec Python 3.10+ :
   </p>
-</div>
-
-<p class="notice">
-  Lance-le en tant qu'administrateur pour la vérification la plus complète (mémoire et
-  pilotes). Ça marche aussi sans, certaines vérifications seront simplement ignorées.
-</p>
+  <pre class="cmd">pip install -r requirements.txt
+python verify_client.py {{ link }}</pre>
+</details>
 
 {% endif %}
 
