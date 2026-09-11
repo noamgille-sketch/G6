@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+
+<a class="link back" href="{{ url_for('index') }}">&larr; All scans</a>
+
+<section class="hero">
+  <div>
+    <h1>Scan #{{ scan.id }}</h1>
+    <p class="muted">Started {{ scan.started_at }} &middot; Game running: {{ "Yes" if scan.game_running else "No" }}</p>
+  </div>
+  <span class="pill pill-{{ (scan.risk_label or 'clean')|lower|replace(' ', '-') }} big">
+    {{ scan.risk_score if scan.risk_score is not none else "-" }} / 100 &middot; {{ scan.risk_label or "running..." }}
+  </span>
+</section>
+
+<h2>Findings ({{ findings|length }})</h2>
+{% if not findings %}
+  <p class="empty">No findings on this scan.</p>
+{% else %}
+<div class="findings">
+  {% for f in findings %}
+  <details class="finding sev-{{ f.severity_label|lower }}" {% if f.severity_label in ("CRITICAL", "HIGH") %}open{% endif %}>
+    <summary>
+      <span class="badge badge-{{ f.severity_label|lower }}">{{ f.severity_label }}</span>
+      <span class="finding-title">{{ f.title }}</span>
+      <span class="finding-check">{{ f.check }}</span>
+    </summary>
+    <p class="finding-detail">{{ f.detail }}</p>
+    {% if f.evidence %}
+    <pre class="evidence">{{ f.evidence | tojson(indent=2) }}</pre>
+    {% endif %}
+  </details>
+  {% endfor %}
+</div>
+{% endif %}
+
+<h2>Checks run</h2>
+<table class="scan-table small">
+  <thead><tr><th>Check</th><th>Status</th></tr></thead>
+  <tbody>
+    {% for st in statuses %}
+    <tr>
+      <td>{{ st.name }}</td>
+      <td>{{ "Ran" if st.ran else ("Skipped - " + (st.skip_reason or "n/a")) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

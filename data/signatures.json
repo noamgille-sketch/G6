@@ -1,0 +1,33 @@
+{
+  "_comment": "Editable signature database for G6 Guard. Add your own entries as you learn about new tools. This ships with a small starter set based on publicly documented techniques - it is NOT a complete threat feed.",
+
+  "suspicious_process_patterns": [
+    "inject", "injector", "loader", "bypass", "spoofer", "hwid",
+    "external", "internal", "aimbot", "wallhack", "menu.exe",
+    "cheat", "hack", "esp", "aimware", "xenos", "extreme injector",
+    "process hacker", "manualmap", "kdmapper"
+  ],
+
+  "suspicious_file_name_patterns": [
+    "(?i)cheat", "(?i)inject", "(?i)loader", "(?i)bypass",
+    "(?i)spoofer", "(?i)hwid", "(?i)^external.*\\.(exe|dll)$",
+    "(?i)^internal.*\\.(exe|dll)$", "(?i)aimbot", "(?i)esp.*\\.dll",
+    "(?i)menu.*\\.(exe|dll)", "(?i)kdmapper", "(?i)dbk64\\.sys"
+  ],
+
+  "known_sha256_blocklist": {
+    "_comment": "sha256 -> label. Empty by default; add hashes here as you collect samples."
+  },
+
+  "vulnerable_driver_blocklist": [
+    "gdrv.sys", "rtcore64.sys", "winring0x64.sys", "winring0.sys",
+    "dbk64.sys", "dbk32.sys", "atillk64.sys", "iqvw64e.sys",
+    "asupio64.sys", "asrdrv104.sys", "gmer64.sys", "kph.sys",
+    "directio64.sys", "physmem.sys", "msio64.sys", "wintcp.sys",
+    "kprocesshacker.sys", "capcom.sys", "rzpnk.sys"
+  ],
+
+  "trusted_driver_dirs": [
+    "c:\\windows\\system32\\drivers"
+  ]
+}

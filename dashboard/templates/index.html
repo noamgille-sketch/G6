@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="hero">
+  <div>
+    <h1>Scan history</h1>
+    <p class="muted">Run a scan before and after installing something you're unsure about.</p>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('trigger_and_redirect') }}">Run new scan</a>
+</section>
+
+{% if not scans %}
+  <p class="empty">No scans yet. Click "Run new scan" to get started.</p>
+{% else %}
+<table class="scan-table">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Started</th>
+      <th>Game running</th>
+      <th>Risk score</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for s in scans %}
+    <tr class="risk-row risk-{{ (s.risk_label or 'clean')|lower|replace(' ', '-') }}">
+      <td>{{ s.id }}</td>
+      <td>{{ s.started_at }}</td>
+      <td>{{ "Yes" if s.game_running else "No" }}</td>
+      <td>
+        <span class="pill pill-{{ (s.risk_label or 'clean')|lower|replace(' ', '-') }}">
+          {{ s.risk_score if s.risk_score is not none else "-" }} / 100 &middot; {{ s.risk_label or "running..." }}
+        </span>
+      </td>
+      <td><a class="link" href="{{ url_for('scan_detail', scan_id=s.id) }}">Details &rarr;</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% endblock %}

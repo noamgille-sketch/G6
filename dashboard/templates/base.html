@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}G6 Guard{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="{{ url_for('index') }}">
+    <span class="brand-mark">G6</span> Guard
+  </a>
+  <span class="tagline">personal FiveM cheat scanner</span>
+</header>
+<main class="container">
+  {% block content %}{% endblock %}
+</main>
+<footer class="footer">
+  Heuristic, best-effort, user-mode scanner. Not a replacement for a real kernel anticheat. See README for limitations.
+</footer>
+</body>
+</html>
