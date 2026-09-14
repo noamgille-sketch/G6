@@ -131,26 +131,55 @@
   }
 
   // ---------------------------------------------------------------------
-  // Extraction nom + ID depuis le texte d'une ligne de log
+  // Extraction nom + ID depuis le texte de la page
   //   ex: "Walid Miller" 213.walid [7874]
+  //
+  // Le panel ne rend pas forcément un <table>/<tr> classique (il n'en a
+  // aucun sur staff.unityrp.io), donc on ne peut pas se fier à des
+  // sélecteurs CSS. À la place on descend l'arbre DOM pour trouver le plus
+  // petit élément qui contient encore le motif complet — ça fonctionne
+  // quel que soit le balisage réel (div, span, lien...).
   // ---------------------------------------------------------------------
-  const HEADER_RE = /"([^"]+)"[^\n\[\]]*\[(\d+)\]/;
-  const ANY_BRACKET_ID_RE = /\[(\d+)\]/;
+  const WITH_ID_RE = /"([^"]+)"[^"\[\]]*?\[(\d+)\]/g;
+  const NAME_ONLY_RE = /"([^"]+)"/g;
 
-  function extractPlayer(text) {
-    const firstLine = text.split('\n')[0] || '';
-    let m = firstLine.match(HEADER_RE) || text.match(HEADER_RE);
-    if (m) return { name: m[1], id: m[2] };
-
-    // Log sans [ID] visible dans l'en-tête : on récupère au moins le nom
-    const nameMatch = firstLine.match(/"([^"]+)"/);
-    const idMatch = text.match(ANY_BRACKET_ID_RE);
-    if (nameMatch) return { name: nameMatch[1], id: idMatch ? idMatch[1] : null };
-    return null;
+  function contextIncludes(el, pattern, maxLevels) {
+    let node = el;
+    for (let i = 0; i < maxLevels && node; i++) {
+      if (pattern.test(node.textContent || '')) return true;
+      node = node.parentElement;
+    }
+    return false;
   }
 
-  function isAnticheatRow(text) {
-    return /d[ée]tection anticheat/i.test(text) || /^\s*anticheat\s*$/i.test(text);
+  // Renvoie les éléments les plus profonds qui contiennent encore, dans
+  // leur propre textContent, au moins une correspondance de `regex` —
+  // c'est-à-dire qu'aucun de leurs enfants ne matche déjà à lui seul.
+  function findInnermostMatches(root, regex) {
+    const found = [];
+    function test(el) {
+      regex.lastIndex = 0;
+      return regex.test(el.textContent || '');
+    }
+    function walk(el) {
+      if (el.dataset && el.dataset.g6bhProcessed) return;
+      if (!test(el)) return;
+      let childMatched = false;
+      for (const child of el.children) {
+        if (test(child)) {
+          childMatched = true;
+          walk(child);
+        }
+      }
+      if (!childMatched) found.push(el);
+    }
+    walk(root);
+    return found;
+  }
+
+  function matchesOf(el, regex) {
+    regex.lastIndex = 0;
+    return [...(el.textContent || '').matchAll(regex)].map((m) => ({ name: m[1], id: m[2] || null }));
   }
 
   // ---------------------------------------------------------------------
@@ -216,38 +245,36 @@
     return btn;
   }
 
-  function findRowCandidates() {
-    // On cible d'abord les lignes de tableau classiques, avec repli sur les
-    // blocs génériques si le panel n'utilise pas <table>.
-    const rows = document.querySelectorAll('tr');
-    if (rows.length) return rows;
-    return document.querySelectorAll('[class*="log"], [class*="row"]');
+  function attachButton(el, player) {
+    el.dataset.g6bhProcessed = '1';
+    const btn = makeBanButton(player);
+    // insertAdjacentElement plutôt que appendChild : si `el` est un <a>,
+    // imbriquer un <button> dedans casserait le clic / la navigation.
+    el.insertAdjacentElement('afterend', btn);
+
+    const hoverScope = el.parentElement || el;
+    hoverScope.addEventListener('mouseenter', () => (hoveredPlayer = player));
+    hoverScope.addEventListener('mouseleave', () => {
+      if (hoveredPlayer === player) hoveredPlayer = null;
+    });
+
+    notifyNewDetection(player);
   }
 
   function processRows() {
-    findRowCandidates().forEach((row) => {
-      if (row.dataset.g6bhProcessed) return;
-      const text = row.innerText || row.textContent || '';
-      if (!text.trim() || !isAnticheatRow(text)) return;
+    // Passe 1 : lignes avec un ID explicite "[1234]".
+    findInnermostMatches(document.body, WITH_ID_RE).forEach((el) => {
+      if (!contextIncludes(el, /anticheat/i, 8)) return;
+      matchesOf(el, WITH_ID_RE).forEach((player) => attachButton(el, player));
+    });
 
-      const player = extractPlayer(text);
-      if (!player) return;
-
-      row.dataset.g6bhProcessed = '1';
-      row.dataset.g6bhPlayer = JSON.stringify(player);
-
-      const btn = makeBanButton(player);
-      // On l'accroche à la dernière cellule si possible, sinon à la ligne.
-      const cells = row.querySelectorAll('td');
-      const target = cells.length ? cells[cells.length - 1] : row;
-      target.appendChild(btn);
-
-      row.addEventListener('mouseenter', () => (hoveredPlayer = player));
-      row.addEventListener('mouseleave', () => {
-        if (hoveredPlayer === player) hoveredPlayer = null;
-      });
-
-      notifyNewDetection(player);
+    // Passe 2 : lignes anticheat où seul le nom apparaît (ID absent du
+    // texte) — on propose quand même un bouton, qui demandera l'ID à la
+    // saisie au clic plutôt que de rester invisible.
+    findInnermostMatches(document.body, NAME_ONLY_RE).forEach((el) => {
+      if (!contextIncludes(el, /d[ée]clench[ée]/i, 4)) return;
+      if (!contextIncludes(el, /anticheat/i, 8)) return;
+      matchesOf(el, NAME_ONLY_RE).forEach((player) => attachButton(el, player));
     });
   }
 
