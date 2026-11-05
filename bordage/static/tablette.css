@@ -1,0 +1,81 @@
+/* Écran tablette — charte Peg groupe, fond bleu nuit, gros boutons tactiles. */
+body.tablette {
+  background: #0d1a2e; color: #fff; user-select: none; -webkit-user-select: none; touch-action: manipulation;
+  overflow: hidden; font-size: 16px;
+  background-image: radial-gradient(ellipse at top, #18325a 0%, #0d1a2e 60%);
+}
+.t-ecran { display: flex; flex-direction: column; height: 100vh; height: 100dvh; padding: 16px 18px 18px; gap: 16px; }
+.t-entete { display: flex; align-items: center; gap: 18px; padding-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,.08); }
+.t-entete img { height: 42px; width: auto; }
+.t-entete .sep { width: 1px; height: 34px; background: rgba(255,255,255,.18); }
+.t-entete .poste-nom { font-weight: 800; font-size: 1.55rem; letter-spacing: -.01em; }
+.t-entete .quart { margin-left: auto; text-align: right; line-height: 1.15; }
+.t-entete .quart b { display: block; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.t-entete .quart span { color: #9fb0cc; font-size: .9rem; }
+.t-reseau { font-size: .9rem; font-weight: 600; padding: 7px 14px; border-radius: 999px; background: rgba(18,146,79,.18); color: #6fe0a3; white-space: nowrap; }
+.t-reseau.hors { background: rgba(232,150,0,.2); color: #ffc46b; }
+
+.t-titre { font-size: 1.7rem; font-weight: 750; text-align: center; margin: 6px 0 2px; letter-spacing: -.01em; }
+.t-sous { text-align: center; color: #9fb0cc; margin-top: -10px; }
+.t-noms { flex: 1; display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); grid-auto-rows: minmax(96px, 1fr); overflow-y: auto; align-content: start; padding: 2px; }
+.t-noms button {
+  border: 1px solid rgba(255,255,255,.08); border-radius: 18px; background: rgba(255,255,255,.06); color: #fff;
+  font-size: 1.45rem; font-weight: 700; padding: 16px 18px; min-height: 96px; display: flex; align-items: center; gap: 16px; text-align: left;
+}
+.t-noms button:active { background: rgba(0,121,196,.35); border-color: #0079c4; }
+.t-initiale { width: 54px; height: 54px; border-radius: 50%; background: #0079c4; display: grid; place-items: center; font-size: 1.4rem; font-weight: 800; flex: none; }
+
+.t-info { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.t-qui { display: flex; align-items: center; gap: 12px; font-size: 1.4rem; font-weight: 800; }
+.t-qui .t-initiale { width: 46px; height: 46px; font-size: 1.2rem; }
+.t-puce { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; padding: 9px 16px; font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.t-puce .ic { width: 20px; height: 20px; color: #7cc4ef; }
+.t-quitter { margin-left: auto; border: 1px solid rgba(255,255,255,.22); background: transparent; color: #fff; border-radius: 12px; padding: 11px 18px; font-size: 1.05rem; font-weight: 600; display: flex; align-items: center; gap: 9px; }
+.t-quitter:active { background: rgba(255,255,255,.1); }
+
+.t-panel { flex: 1; display: grid; gap: 14px; grid-template-columns: 1fr 1fr; grid-template-rows: 2.3fr 1fr 1fr; min-height: 0; }
+.t-btn {
+  border: 0; border-radius: 22px; color: #fff; font-size: 1.6rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 16px;
+  padding: 12px; transition: transform .06s, filter .12s; position: relative; overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 8px 24px rgba(0,0,0,.25);
+}
+.t-btn .ic { width: 34px; height: 34px; stroke-width: 2.4; }
+.t-btn:active { transform: scale(.985); filter: brightness(1.12); }
+.t-btn:disabled { opacity: .22; filter: grayscale(.7); box-shadow: none; }
+.t-couette { grid-column: 1 / 3; background: #12924f; flex-direction: column; gap: 10px; font-size: 2.9rem; letter-spacing: -.01em; }
+.t-couette .rond { width: 86px; height: 86px; border-radius: 50%; background: rgba(255,255,255,.18); display: grid; place-items: center; }
+.t-couette .rond .ic { width: 50px; height: 50px; stroke-width: 3; }
+.t-couette .compteur { font-size: 1.25rem; font-weight: 700; background: rgba(0,0,0,.18); padding: 6px 18px; border-radius: 999px; }
+.t-couette.flash { background: #1bb565; }
+.t-couette.flash .rond { animation: pop .35s; }
+@keyframes pop { 40% { transform: scale(1.18); } }
+.t-panne-debut { background: #e80032; }
+.t-panne-fin { background: #0079c4; }
+.t-of { background: #3d5591; }
+.t-qualite { background: #d97a00; }
+.t-bandeau { background: #e80032; border-radius: 14px; padding: 14px 18px; font-size: 1.35rem; font-weight: 800; text-align: center; display: flex; align-items: center; justify-content: center; gap: 12px; animation: clignote 1.6s infinite; }
+.t-bandeau .ic { width: 28px; height: 28px; }
+@keyframes clignote { 50% { background: #a30024; } }
+
+.t-annuler { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #fff; color: #1c3154; border: 0; border-radius: 999px; padding: 15px 28px; font-size: 1.2rem; font-weight: 750; box-shadow: 0 10px 30px rgba(0,0,0,.45); display: flex; align-items: center; gap: 10px; z-index: 15; }
+.t-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #fff; color: #1c3154; padding: 14px 24px; border-radius: 14px; font-size: 1.25rem; font-weight: 750; box-shadow: 0 10px 30px rgba(0,0,0,.45); z-index: 30; display: flex; align-items: center; gap: 10px; }
+.t-toast .ic { color: #12924f; width: 24px; height: 24px; stroke-width: 3; }
+
+.t-modal { position: fixed; inset: 0; background: rgba(5,10,20,.8); display: flex; align-items: center; justify-content: center; z-index: 20; padding: 18px; backdrop-filter: blur(4px); }
+.t-boite { background: #16294a; border: 1px solid rgba(255,255,255,.1); border-radius: 22px; padding: 24px; width: min(780px, 100%); max-height: 100%; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.t-boite h2 { font-size: 1.6rem; margin: 0 0 18px; text-align: center; font-weight: 800; }
+.t-defauts { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+.t-defauts button { border: 0; border-radius: 16px; background: #d97a00; color: #fff; font-size: 1.25rem; font-weight: 750; padding: 22px 14px; min-height: 84px; }
+.t-defauts button:active { filter: brightness(1.15); }
+.t-saisie { background: #0b1626; border: 2px solid #0079c4; border-radius: 14px; font-size: 2.6rem; font-weight: 800; text-align: center; padding: 14px; min-height: 80px; letter-spacing: .08em; margin-bottom: 16px; font-variant-numeric: tabular-nums; }
+.t-saisie .prefixe { color: #7cc4ef; }
+.t-pave { display: grid; gap: 10px; grid-template-columns: repeat(3, 1fr); }
+.t-pave button { border: 0; border-radius: 14px; background: rgba(255,255,255,.09); color: #fff; font-size: 2rem; font-weight: 700; padding: 15px; }
+.t-pave button:active { background: rgba(0,121,196,.45); }
+.t-actions { display: flex; gap: 12px; margin-top: 18px; }
+.t-actions button { flex: 1; border: 0; border-radius: 14px; font-size: 1.35rem; font-weight: 750; padding: 18px; color: #fff; }
+.t-actions .annuler { background: rgba(255,255,255,.12); }
+.t-actions .valider { background: #12924f; }
+.t-erreur { text-align: center; font-size: 1.4rem; margin-top: 20vh; }
+@media (max-height: 600px) { .t-couette { font-size: 2rem; } .t-couette .rond { width: 60px; height: 60px; } .t-btn { font-size: 1.25rem; } .t-entete img { height: 32px; } }
+@media (max-width: 700px) { .t-entete .sep, .t-entete img { display: none; } .t-btn { font-size: 1.2rem; flex-direction: column; gap: 6px; } }

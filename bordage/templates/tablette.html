@@ -5,13 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>{{ poste.name }}</title>
+<meta name="theme-color" content="#0d1a2e">
+<title>{{ poste.name }} · Peg groupe</title>
+<link rel="icon" href="{{ url_for('static', filename='img/icone.png') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='tablette.css') }}">
 </head>
 <body class="tablette">
+{% include "_icones.html" %}
 <div id="app" class="t-ecran"></div>
 <script>
-window.BORDAGE = { code: {{ code|tojson }}, poste: {{ poste.name|tojson }} };
+window.BORDAGE = { code: {{ code|tojson }}, poste: {{ poste.name|tojson }},
+                   logo: {{ url_for('static', filename='img/logo-peg-blanc.png')|tojson }} };
 </script>
 <script src="{{ url_for('static', filename='tablette.js') }}"></script>
 </body>

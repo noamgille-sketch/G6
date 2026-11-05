@@ -1,39 +1,61 @@
-<!doctype html>
+{% from "_macros.html" import icone %}<!doctype html>
 <html lang="fr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block titre %}Suivi bordage{% endblock %}</title>
+<title>{% block titre %}Suivi bordage{% endblock %} · Peg groupe</title>
+<link rel="icon" href="{{ url_for('static', filename='img/icone.png') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+{% include "_icones.html" %}
 {% if user %}
-<header class="barre">
-  <span class="marque">Suivi bordage</span>
-  <nav>
-    <a href="{{ url_for('tableau') }}" class="{{ 'actif' if request.endpoint == 'tableau' }}">Tableau de bord</a>
-    <a href="{{ url_for('journal') }}" class="{{ 'actif' if request.endpoint == 'journal' }}">Journal</a>
-    <a href="{{ url_for('cadences') }}" class="{{ 'actif' if request.endpoint == 'cadences' }}">Cadences</a>
-    {% if user.role in ('admin', 'chef_prod') %}
-    <a href="{{ url_for('admin_liste', liste='operatrices') }}" class="{{ 'actif' if request.view_args and request.view_args.get('liste') == 'operatrices' }}">Opératrices</a>
-    <a href="{{ url_for('admin_liste', liste='defauts') }}" class="{{ 'actif' if request.view_args and request.view_args.get('liste') == 'defauts' }}">Défauts</a>
-    {% endif %}
-    {% if user.role == 'admin' %}
-    <a href="{{ url_for('admin_postes') }}" class="{{ 'actif' if request.endpoint == 'admin_postes' }}">Postes &amp; tablettes</a>
-    <a href="{{ url_for('admin_comptes') }}" class="{{ 'actif' if request.endpoint == 'admin_comptes' }}">Comptes</a>
-    <a href="{{ url_for('admin_reglages') }}" class="{{ 'actif' if request.endpoint == 'admin_reglages' }}">Réglages</a>
-    {% endif %}
-  </nav>
-  <div class="compte">
-    <a href="{{ url_for('mot_de_passe') }}" style="color:#d7dde4">{{ user.display_name }} · {{ ROLES[user.role] }}</a>
-    <form method="post" action="{{ url_for('deconnexion') }}"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><button>Se déconnecter</button></form>
+<div class="appli">
+  <aside class="menu" id="menu">
+    <a class="logo" href="{{ url_for('tableau') }}"><img src="{{ url_for('static', filename='img/logo-peg.png') }}" alt="Peg groupe"></a>
+    <div class="produit">Suivi de production · Bordage</div>
+    {% set ep = request.endpoint %}{% set liste = request.view_args.get('liste') if request.view_args else None %}
+    <nav>
+      <div class="section">Production</div>
+      <a href="{{ url_for('tableau') }}" class="{{ 'actif' if ep == 'tableau' }}">{{ icone('tableau') }} Tableau de bord</a>
+      <a href="{{ url_for('journal') }}" class="{{ 'actif' if ep == 'journal' }}">{{ icone('journal') }} Journal des clics</a>
+      <a href="{{ url_for('cadences') }}" class="{{ 'actif' if ep == 'cadences' }}">{{ icone('cadence') }} Cadences</a>
+      {% if user.role in ('admin', 'chef_prod') %}
+      <div class="section">Paramétrage</div>
+      <a href="{{ url_for('admin_liste', liste='operatrices') }}" class="{{ 'actif' if liste == 'operatrices' }}">{{ icone('equipe') }} Opératrices</a>
+      <a href="{{ url_for('admin_liste', liste='defauts') }}" class="{{ 'actif' if liste == 'defauts' }}">{{ icone('alerte') }} Défauts qualité</a>
+      {% endif %}
+      {% if user.role == 'admin' %}
+      <a href="{{ url_for('admin_postes') }}" class="{{ 'actif' if ep == 'admin_postes' }}">{{ icone('tablette') }} Postes &amp; tablettes</a>
+      <a href="{{ url_for('admin_comptes') }}" class="{{ 'actif' if ep == 'admin_comptes' }}">{{ icone('compte') }} Comptes</a>
+      <a href="{{ url_for('admin_reglages') }}" class="{{ 'actif' if ep == 'admin_reglages' }}">{{ icone('reglages') }} Réglages</a>
+      {% endif %}
+    </nav>
+    <div class="moi">
+      <div class="avatar">{{ user.display_name[:1]|upper }}</div>
+      <div class="qui"><b>{{ user.display_name }}</b><a href="{{ url_for('mot_de_passe') }}" title="Changer mon mot de passe">{{ ROLES[user.role] }}</a></div>
+      <form method="post" action="{{ url_for('deconnexion') }}"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><button class="bouton-icone" title="Se déconnecter">{{ icone('sortie') }}</button></form>
+    </div>
+  </aside>
+  <div class="contenu">
+    <div class="barre-mobile">
+      <img src="{{ url_for('static', filename='img/logo-peg.png') }}" alt="Peg groupe">
+      <button class="bouton-icone" onclick="document.getElementById('menu').classList.toggle('ouvert')">{{ icone('menu') }}</button>
+    </div>
+    <div class="entete-page">
+      <div><h1>{% block h1 %}{% endblock %}</h1><div class="sous-titre">{% block sous_titre %}{% endblock %}</div></div>
+      <div>{% block actions %}{% endblock %}</div>
+    </div>
+    <main>
+      {% for cat, msg in get_flashed_messages(with_categories=true) %}<div class="flash {{ cat }}">{{ icone('ok' if cat == 'ok' else 'alerte') }}{{ msg }}</div>{% endfor %}
+      {% block contenu %}{% endblock %}
+    </main>
   </div>
-</header>
+</div>
+{% else %}
+{% block hors_connexion %}{% endblock %}
 {% endif %}
-<main>
-  {% for cat, msg in get_flashed_messages(with_categories=true) %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}
-  {% block contenu %}{% endblock %}
-</main>
+<script src="{{ url_for('static', filename='tables.js') }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

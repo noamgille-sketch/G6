@@ -1,0 +1,17 @@
+{% macro icone(nom, cls='') %}<svg class="ic {{ cls }}" aria-hidden="true"><use href="#i-{{ nom }}"/></svg>{% endmacro %}
+{% macro ecran_connexion() %}
+<div class="ecran-connexion">
+  <div class="vitrine">
+    <img src="{{ url_for('static', filename='img/logo-peg-blanc.png') }}" alt="Peg groupe">
+    <div>
+      <h2>Suivi de production<br>des postes de bordage</h2>
+      <p style="margin-top:14px">Rendement par opératrice et par quart, pannes, défauts qualité et production par OF, en temps réel.</p>
+    </div>
+    <img class="motif" src="{{ url_for('static', filename='img/icone.png') }}" alt="">
+  </div>
+  <div class="formulaire"><div>
+    {% for cat, msg in get_flashed_messages(with_categories=true) %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}
+    {{ caller() }}
+  </div></div>
+</div>
+{% endmacro %}

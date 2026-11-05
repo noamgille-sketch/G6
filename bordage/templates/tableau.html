@@ -1,51 +1,95 @@
 {% extends "base.html" %}
-{% block titre %}Tableau de bord · Suivi bordage{% endblock %}
+{% from "_macros.html" import icone %}
+{% block titre %}Tableau de bord{% endblock %}
+{% block h1 %}Tableau de bord{% endblock %}
+{% block sous_titre %}<span id="libelle">Chargement…</span>{% endblock %}
+{% block actions %}<a class="bouton second" id="export" href="#">{{ icone('telecharger') }}Export complet (Excel)</a>{% endblock %}
 {% block contenu %}
+
 <div class="carte">
-  <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:.5rem">
-    <h2>Postes en ce moment <span class="muted petit" id="direct-quart"></span></h2>
-    <span class="muted petit">Actualisé toutes les 15 s</span>
+  <div class="carte-entete">
+    <div><h2>{{ icone('direct') }}Postes en ce moment <span class="muted petit" id="direct-quart" style="font-weight:500"></span></h2>
+      <div class="aide">En temps réel, actualisé toutes les 15 secondes. Les filtres ne s'appliquent pas à cette partie.</div></div>
   </div>
   <div class="direct" id="direct"><div class="vide">Chargement…</div></div>
 </div>
 
-<div class="carte filtres" id="filtres">
-  <div class="segments" id="periodes">
-    <button data-p="quart">Quart en cours</button>
-    <button data-p="jour" class="actif">Aujourd'hui</button>
-    <button data-p="hier">Hier</button>
-    <button data-p="semaine">7 jours</button>
-    <button data-p="mois">30 jours</button>
-    <button data-p="perso">Dates…</button>
+<div class="filtres-globaux">
+  <div class="carte">
+    <div class="filtre"><span>Période</span>
+      <div class="segments" id="periodes">
+        <button data-p="quart">Quart en cours</button>
+        <button data-p="jour">Aujourd'hui</button>
+        <button data-p="hier">Hier</button>
+        <button data-p="semaine">7 jours</button>
+        <button data-p="mois">30 jours</button>
+        <button data-p="perso">Dates…</button>
+      </div>
+    </div>
+    <div class="filtre perso" id="perso"><span>Du … au …</span>
+      <div class="ligne-form"><input type="date" id="du"><input type="date" id="au"><button class="bouton petit" id="appliquer">OK</button></div>
+    </div>
+    <label class="filtre"><span>Quart</span>
+      <select id="f-quart"><option value="">Tous les quarts</option>{% for q in quarts %}<option>{{ q }}</option>{% endfor %}</select></label>
+    <label class="filtre"><span>Opératrice</span>
+      <select id="f-operatrice"><option value="">Toutes</option>{% for o in operatrices %}<option value="{{ o.id }}">{{ o.name }}{{ '' if o.active else ' (inactive)' }}</option>{% endfor %}</select></label>
+    <label class="filtre"><span>Poste</span>
+      <select id="f-poste"><option value="">Tous</option>{% for p in postes %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select></label>
+    <div class="actions"><button class="bouton second" id="tout-effacer" type="button">{{ icone('reinit') }}Réinitialiser</button></div>
   </div>
-  <span class="perso" id="perso"><input type="date" id="du"> au <input type="date" id="au"><button class="bouton petit" id="appliquer">OK</button></span>
-  <select id="f-quart"><option value="">Tous les quarts</option>{% for q in quarts %}<option>{{ q }}</option>{% endfor %}</select>
-  <select id="f-operatrice"><option value="">Toutes les opératrices</option>{% for o in operatrices %}<option value="{{ o.id }}">{{ o.name }}{{ '' if o.active else ' (inactive)' }}</option>{% endfor %}</select>
-  <select id="f-poste"><option value="">Tous les postes</option>{% for p in postes %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select>
-  <a class="bouton second" id="export" href="#">Exporter (Excel)</a>
-  <span class="muted petit" id="libelle"></span>
+  <div class="puces-filtres" id="puces"></div>
 </div>
 
 <div class="flash erreur" id="alerte-cadence" style="display:none"></div>
-<div class="kpis" id="kpis" style="margin-bottom:1rem"></div>
+<div class="kpis" id="kpis"></div>
 
-<div class="grille g2">
-  <div class="carte"><h2>Rendement par opératrice</h2><p class="muted petit">La ligne pointillée marque l'objectif de 100 %.</p><div class="graphe"><canvas id="g-rendement"></canvas></div></div>
-  <div class="carte"><h2 id="t-production">Couettes produites</h2><p class="muted petit">Par poste. Choisis une opératrice dans le filtre pour ne voir que sa production.</p><div class="graphe"><canvas id="g-production"></canvas></div></div>
-  <div class="carte" id="c-tendance"><h2>Rendement jour par jour</h2><p class="muted petit">Par poste. Choisis une opératrice dans le filtre pour voir sa courbe.</p><div class="graphe"><canvas id="g-tendance"></canvas></div></div>
-  <div class="carte"><h2>Défauts qualité déclarés</h2><div class="graphe"><canvas id="g-defauts"></canvas></div></div>
-  <div class="carte"><h2>Temps de panne par poste</h2><div class="graphe"><canvas id="g-pannes"></canvas></div></div>
+<div class="grille g3">
+  <div class="carte">
+    <div class="carte-entete"><div><h2>{{ icone('equipe') }}Rendement par opératrice</h2><div class="aide">Pointillés : objectif 100 %</div></div></div>
+    <div class="graphe grand"><canvas id="g-rendement"></canvas></div>
+  </div>
+  <div class="carte">
+    <div class="carte-entete"><div><h2>{{ icone('graphe') }}<span id="t-production">Couettes produites</span></h2><div class="aide">Empilé par poste</div></div></div>
+    <div class="graphe grand"><canvas id="g-production"></canvas></div>
+  </div>
+  <div class="carte" id="c-tendance">
+    <div class="carte-entete"><div><h2>{{ icone('hausse') }}Rendement jour par jour</h2><div class="aide">Par poste</div></div></div>
+    <div class="graphe grand"><canvas id="g-tendance"></canvas></div>
+  </div>
 </div>
+<div class="espace"></div>
+<div class="grille g2">
+  <div class="carte">
+    <div class="carte-entete"><div><h2>{{ icone('alerte') }}Défauts qualité déclarés</h2><div class="aide">Du plus fréquent au moins fréquent</div></div></div>
+    <div class="graphe"><canvas id="g-defauts"></canvas></div>
+  </div>
+  <div class="carte">
+    <div class="carte-entete"><div><h2>{{ icone('cle') }}Temps de panne par poste</h2><div class="aide">En minutes, qu'une opératrice soit connectée ou non</div></div></div>
+    <div class="graphe"><canvas id="g-pannes"></canvas></div>
+  </div>
+</div>
+<div class="espace"></div>
 
-<div class="carte"><h2>Par opératrice</h2><div class="defile" id="t-operatrices"></div></div>
-<div class="carte"><h2>Détail par quart</h2><div class="defile haut" id="t-detail"></div></div>
-<div class="carte"><h2>Par OF</h2><div class="defile haut" id="t-of"></div></div>
+<div class="carte">
+  <div class="carte-entete"><div><h2>{{ icone('equipe') }}Par opératrice</h2><div class="aide">Cumul sur la période. Clique sur un titre de colonne pour trier.</div></div></div>
+  <div class="defile" id="t-operatrices"></div>
+</div>
+<div class="carte">
+  <div class="carte-entete"><div><h2>{{ icone('tablette') }}Par poste</h2></div></div>
+  <div class="defile" id="t-postes"></div>
+</div>
+<div class="carte">
+  <div class="carte-entete"><div><h2>{{ icone('horloge') }}Détail par quart</h2><div class="aide">Une ligne par opératrice, par poste et par quart</div></div></div>
+  <div class="defile haut" id="t-detail"></div>
+</div>
+<div class="carte">
+  <div class="carte-entete"><div><h2>{{ icone('of') }}Par OF</h2></div></div>
+  <div class="defile haut" id="t-of"></div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='vendor/chart.umd.js') }}"></script>
-<script>
-window.POSTES = {{ postes|map(attribute='name')|list|tojson }};
-</script>
+<script>window.POSTES = {{ postes|map(attribute='name')|list|tojson }};</script>
 <script src="{{ url_for('static', filename='tableau.js') }}"></script>
 {% endblock %}

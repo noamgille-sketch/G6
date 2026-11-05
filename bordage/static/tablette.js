@@ -122,6 +122,17 @@
     return el;
   }
 
+  function ic(nom) {
+    var NS = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("class", "ic");
+    var use = document.createElementNS(NS, "use");
+    use.setAttribute("href", "#i-" + nom);
+    svg.appendChild(use);
+    return svg;
+  }
+  function initiale(nom) { return h("span", { class: "t-initiale" }, [(nom || "?").charAt(0).toUpperCase()]); }
+
   function nomOperatrice(id) {
     for (var i = 0; i < config.operatrices.length; i++) if (config.operatrices[i].id === id) return config.operatrices[i].nom;
     return "?";
@@ -133,8 +144,10 @@
     majReseau(reseau);
     var horloge = h("span", { id: "horloge" }, [heure(new Date().toISOString())]);
     return h("div", { class: "t-entete" }, [
+      h("img", { src: window.BORDAGE.logo, alt: "Peg groupe" }),
+      h("span", { class: "sep" }),
       h("span", { class: "poste-nom" }, [config.poste || window.BORDAGE.poste]),
-      h("span", {}, [config.quart ? "Quart " + config.quart.nom + " · " : "", horloge]),
+      h("div", { class: "quart" }, [h("b", {}, [horloge]), h("span", {}, [config.quart ? "Quart " + config.quart.nom : "Hors quart"])]),
       reseau
     ]);
   }
@@ -146,11 +159,12 @@
   }
 
   function rendreNoms() {
-    app.appendChild(h("div", { class: "t-titre" }, ["Bonjour ! Appuie sur ton nom"]));
+    app.appendChild(h("div", { class: "t-titre" }, ["Bonjour ! Appuie sur ton prénom"]));
+    app.appendChild(h("div", { class: "t-sous" }, ["pour commencer ton poste"]));
     var grille = h("div", { class: "t-noms" });
     if (!config.operatrices.length) grille.appendChild(h("div", { class: "t-titre" }, ["Aucune opératrice enregistrée."]));
     config.operatrices.forEach(function (o) {
-      grille.appendChild(h("button", { onclick: function () { connecter(o.id); } }, [o.nom]));
+      grille.appendChild(h("button", { onclick: function () { connecter(o.id); } }, [initiale(o.nom), h("span", {}, [o.nom])]));
     });
     app.appendChild(grille);
   }
@@ -158,23 +172,24 @@
   function rendrePanel() {
     var enPanne = !!etat.panne;
     app.appendChild(h("div", { class: "t-info" }, [
-      h("span", { class: "t-puce" }, [h("b", {}, [nomOperatrice(etat.operator_id)])]),
-      h("span", { class: "t-puce" }, [h("b", {}, [etat.of || "Pas d'OF"])]),
-      h("button", { class: "t-quitter", onclick: deconnecter }, ["Changer d'opératrice"])
+      h("span", { class: "t-qui" }, [initiale(nomOperatrice(etat.operator_id)), nomOperatrice(etat.operator_id)]),
+      h("span", { class: "t-puce" }, [ic("of"), etat.of || "Pas d'OF"]),
+      h("button", { class: "t-quitter", onclick: deconnecter }, [ic("echange"), "Changer d'opératrice"])
     ]));
     if (enPanne) {
-      app.appendChild(h("div", { class: "t-bandeau" }, ["PANNE EN COURS depuis " + heure(etat.panne) + " — appuie sur « Fin de panne » quand le poste repart"]));
+      app.appendChild(h("div", { class: "t-bandeau" }, [ic("alerte"), "PANNE EN COURS depuis " + heure(etat.panne) + " — appuie sur « Fin de panne » quand le poste repart"]));
     }
     var couette = h("button", { class: "t-btn t-couette", id: "btn-couette", disabled: enPanne, onclick: couetteFinie }, [
+      h("span", { class: "rond" }, [ic("ok")]),
       "COUETTE TERMINÉE",
       config.afficher_compteur ? h("span", { class: "compteur", id: "compteur" }, [etat.compteur + " couette" + (etat.compteur > 1 ? "s" : "") + " ce quart"]) : null
     ]);
     app.appendChild(h("div", { class: "t-panel" }, [
       couette,
-      h("button", { class: "t-btn t-panne-debut", disabled: enPanne, onclick: debutPanne }, ["Début de panne"]),
-      h("button", { class: "t-btn t-panne-fin", disabled: !enPanne, onclick: finPanne }, ["Fin de panne"]),
-      h("button", { class: "t-btn t-of", onclick: ouvrirOF }, ["Changement d'OF"]),
-      h("button", { class: "t-btn t-qualite", onclick: ouvrirQualite }, ["Problème qualité"])
+      h("button", { class: "t-btn t-panne-debut", disabled: enPanne, onclick: debutPanne }, [ic("cle"), "Début de panne"]),
+      h("button", { class: "t-btn t-panne-fin", disabled: !enPanne, onclick: finPanne }, [ic("lecture"), "Fin de panne"]),
+      h("button", { class: "t-btn t-of", onclick: ouvrirOF }, [ic("of"), "Changement d'OF"]),
+      h("button", { class: "t-btn t-qualite", onclick: ouvrirQualite }, [ic("alerte"), "Problème qualité"])
     ]));
   }
 
@@ -186,7 +201,7 @@
   function toast(msg) {
     var ancien = document.querySelector(".t-toast");
     if (ancien) ancien.remove();
-    var t = h("div", { class: "t-toast" }, [msg]);
+    var t = h("div", { class: "t-toast" }, [ic("ok"), msg]);
     document.body.appendChild(t);
     setTimeout(function () { t.remove(); }, 1800);
   }
@@ -234,7 +249,7 @@
   function proposerAnnulation() {
     fermerAnnulation();
     if (!config.delai_annulation) return;
-    var b = h("button", { class: "t-annuler", id: "annuler", onclick: annulerDerniere }, ["↶ Annuler la dernière couette"]);
+    var b = h("button", { class: "t-annuler", id: "annuler", onclick: annulerDerniere }, [ic("annuler"), "Annuler la dernière couette"]);
     document.body.appendChild(b);
     minuterieAnnulation = setTimeout(fermerAnnulation, config.delai_annulation * 1000);
   }
@@ -294,7 +309,11 @@
     var saisie = "";
     var affichage = h("div", { class: "t-saisie" }, [""]);
     // Les OF s'écrivent « OF » suivi de chiffres : seul le numéro est à taper.
-    function maj() { affichage.textContent = "OF" + saisie; }
+    function maj() {
+      affichage.innerHTML = "";
+      affichage.appendChild(h("span", { class: "prefixe" }, ["OF"]));
+      affichage.appendChild(document.createTextNode(saisie));
+    }
     var touches = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "C"];
     var pave = h("div", { class: "t-pave" }, touches.map(function (t) {
       return h("button", { onclick: function () {

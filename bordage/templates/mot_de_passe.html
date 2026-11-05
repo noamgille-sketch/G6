@@ -1,12 +1,13 @@
 {% extends "base.html" %}
+{% block titre %}Mot de passe{% endblock %}
+{% block h1 %}Mon mot de passe{% endblock %}
 {% block contenu %}
-<div class="carte" style="max-width:420px">
-  <h1>Changer mon mot de passe</h1>
+<div class="carte remplie" style="max-width:480px">
   <form method="post" class="form-colonne">
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
     <label>Mot de passe actuel <input type="password" name="actuel" required></label>
     <label>Nouveau mot de passe <input type="password" name="nouveau" required minlength="6"></label>
-    <button class="bouton">Enregistrer</button>
+    <div><button class="bouton">Enregistrer</button></div>
   </form>
 </div>
 {% endblock %}

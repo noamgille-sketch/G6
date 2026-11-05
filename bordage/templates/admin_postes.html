@@ -1,24 +1,28 @@
 {% extends "base.html" %}
-{% block titre %}Postes · Suivi bordage{% endblock %}
+{% from "_macros.html" import icone %}
+{% block titre %}Postes & tablettes{% endblock %}
+{% block h1 %}Postes &amp; tablettes{% endblock %}
+{% block sous_titre %}Sur chaque tablette, ouvre le lien de son poste dans Chrome puis « Ajouter à l'écran d'accueil ». Le lien suffit à identifier le poste.{% endblock %}
+{% block actions %}<form method="post"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="ajouter"><button class="bouton">{{ icone('plus') }}Ajouter un poste</button></form>{% endblock %}
 {% block contenu %}
 <div class="carte">
-  <h1>Postes &amp; tablettes</h1>
-  <p class="muted petit">Sur chaque tablette, ouvre le lien de son poste dans le navigateur (Chrome) puis « Ajouter à l'écran d'accueil ». Le lien suffit à identifier le poste : pas de mot de passe à taper sur la tablette. Si un lien circule là où il ne devrait pas, génère-en un nouveau.</p>
-  <p class="muted petit">La cadence attendue de chaque poste se règle dans <a href="{{ url_for('cadences') }}">Cadences</a> (accessible aussi aux responsables).</p>
+  <div class="carte-entete"><div><h2>{{ icone('tablette') }}Postes</h2><div class="aide">Si un lien circule là où il ne devrait pas, génère-en un nouveau. La cadence se règle dans <a href="{{ url_for('cadences') }}">Cadences</a>.</div></div></div>
   <div class="defile"><table>
-    <tr><th>Poste</th><th>Lien de la tablette</th><th></th></tr>
+    <thead><tr><th>Poste</th><th>Lien de la tablette</th><th>État</th><th></th></tr></thead>
+    <tbody>
     {% for p in postes %}
     <tr class="{{ '' if p.active else 'inactif' }}">
       <td>
         <form method="post" class="ligne-form">
           <input type="hidden" name="csrf" value="{{ csrf_token() }}">
           <input type="hidden" name="action" value="modifier"><input type="hidden" name="id" value="{{ p.id }}">
-          <input type="text" name="nom" value="{{ p.name }}" maxlength="40" style="width:140px">
-          <button class="bouton second petit">Enregistrer</button>
+          <input type="text" name="nom" value="{{ p.name }}" maxlength="40" style="width:150px">
+          <button class="bouton second petit">Renommer</button>
         </form>
       </td>
-      <td>{% set lien = url_for('tablette', code=p.token, _external=True) %}<code class="lien">{{ lien }}</code> <a href="{{ lien }}" target="_blank" class="petit">ouvrir</a></td>
-      <td style="display:flex;gap:.3rem">
+      <td>{% set lien = url_for('tablette', code=p.token, _external=True) %}<div class="ligne-form"><code class="lien">{{ lien }}</code><a class="bouton second petit" href="{{ lien }}" target="_blank">{{ icone('lien') }}Ouvrir</a></div></td>
+      <td>{% if p.active %}<span class="pastille prod">Actif</span>{% else %}<span class="pastille libre">Désactivé</span>{% endif %}</td>
+      <td><div class="ligne-form">
         <form method="post" onsubmit="return confirm('L\'ancien lien ne marchera plus : il faudra ouvrir le nouveau sur la tablette. Continuer ?')">
           <input type="hidden" name="csrf" value="{{ csrf_token() }}">
           <input type="hidden" name="action" value="nouveau_lien"><input type="hidden" name="id" value="{{ p.id }}">
@@ -27,15 +31,12 @@
         <form method="post">
           <input type="hidden" name="csrf" value="{{ csrf_token() }}">
           <input type="hidden" name="action" value="basculer"><input type="hidden" name="id" value="{{ p.id }}">
-          <button class="bouton second petit">{{ 'Désactiver' if p.active else 'Réactiver' }}</button>
+          <button class="bouton {{ 'danger' if p.active else 'second' }} petit">{{ 'Désactiver' if p.active else 'Réactiver' }}</button>
         </form>
-      </td>
+      </div></td>
     </tr>
     {% endfor %}
+    </tbody>
   </table></div>
-  <form method="post" style="margin-top:1rem">
-    <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="ajouter">
-    <button class="bouton second">+ Ajouter un poste</button>
-  </form>
 </div>
 {% endblock %}

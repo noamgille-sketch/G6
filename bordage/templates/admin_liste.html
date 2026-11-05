@@ -1,38 +1,41 @@
 {% extends "base.html" %}
-{% block titre %}{{ titre }} · Suivi bordage{% endblock %}
+{% from "_macros.html" import icone %}
+{% block titre %}{{ titre }}{% endblock %}
+{% block h1 %}{{ titre }}{% endblock %}
+{% block sous_titre %}{% if liste == 'operatrices' %}Les opératrices actives apparaissent sur toutes les tablettes. Désactiver une opératrice la retire des tablettes sans effacer son historique.{% else %}Proposés à l'opératrice quand elle appuie sur « Problème qualité ».{% endif %}{% endblock %}
 {% block contenu %}
+<form method="post" class="carte remplie ligne-form">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+  <input type="hidden" name="action" value="ajouter">
+  <input type="text" name="texte" placeholder="{{ aide }}" required maxlength="60" style="flex:1;max-width:420px">
+  <button class="bouton">{{ icone('plus') }}Ajouter</button>
+</form>
 <div class="carte">
-  <h1>{{ titre }}</h1>
-  {% if liste == 'operatrices' %}<p class="muted petit">Les opératrices actives apparaissent sur toutes les tablettes. Désactiver une opératrice la retire des tablettes sans effacer son historique.</p>
-  {% else %}<p class="muted petit">Ces défauts sont proposés à l'opératrice quand elle appuie sur « Problème qualité ».</p>{% endif %}
-  <form method="post" class="ligne-form" style="margin-bottom:1rem">
-    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-    <input type="hidden" name="action" value="ajouter">
-    <input type="text" name="texte" placeholder="{{ aide }}" required maxlength="60" style="min-width:260px">
-    <button class="bouton">Ajouter</button>
-  </form>
-  <div class="defile"><table>
-    <tr><th>{{ aide }}</th><th>État</th><th></th></tr>
+  <div class="defile"><table data-tableau="{{ liste }}">
+    <thead><tr><th>{{ aide }}</th><th data-filtre="Toutes">État</th><th data-pas-tri data-pas-export></th></tr></thead>
+    <tbody>
     {% for r in rows %}
     <tr class="{{ '' if r.active else 'inactif' }}">
-      <td>
+      <td data-v="{{ r.texte }}">
         <form method="post" class="ligne-form">
           <input type="hidden" name="csrf" value="{{ csrf_token() }}">
           <input type="hidden" name="action" value="renommer"><input type="hidden" name="id" value="{{ r.id }}">
-          <input type="text" name="texte" value="{{ r.texte }}" maxlength="60" style="min-width:240px">
+          <input type="text" name="texte" value="{{ r.texte }}" maxlength="60" style="min-width:260px">
           <button class="bouton second petit">Renommer</button>
         </form>
+        <span style="display:none">{{ r.texte }}</span>
       </td>
-      <td>{{ 'Active' if r.active else 'Désactivée' }}</td>
+      <td>{% if r.active %}<span class="pastille prod">Active</span>{% else %}<span class="pastille libre">Désactivée</span>{% endif %}</td>
       <td>
         <form method="post" class="ligne-form">
           <input type="hidden" name="csrf" value="{{ csrf_token() }}">
           <input type="hidden" name="action" value="basculer"><input type="hidden" name="id" value="{{ r.id }}">
-          <button class="bouton second petit">{{ 'Désactiver' if r.active else 'Réactiver' }}</button>
+          <button class="bouton {{ 'danger' if r.active else 'second' }} petit">{{ 'Désactiver' if r.active else 'Réactiver' }}</button>
         </form>
       </td>
     </tr>
-    {% else %}<tr><td colspan="3" class="vide">Rien pour l'instant.</td></tr>{% endfor %}
+    {% else %}<tr data-vide><td colspan="3" class="vide">Rien pour l'instant.</td></tr>{% endfor %}
+    </tbody>
   </table></div>
 </div>
 {% endblock %}

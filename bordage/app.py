@@ -103,6 +103,10 @@ def create_app(db_path=None):
     def heure_locale(text):
         return parse_ts(text).astimezone(tz()).strftime("%d/%m/%Y %H:%M:%S")
 
+    @app.template_filter("jour_local")
+    def jour_local(text):
+        return parse_ts(text).astimezone(tz()).strftime("%d/%m/%Y")
+
     @app.context_processor
     def contexte():
         return {"user": g.get("user"), "ROLES": ROLES, "csrf_token": csrf_token}
@@ -233,6 +237,8 @@ def create_app(db_path=None):
     def connexion():
         if _aucun_compte():
             return redirect(url_for("installation"))
+        if g.user is not None:
+            return redirect(url_for("tableau"))
         if request.method == "POST":
             row = get_db().execute(
                 "SELECT * FROM users WHERE username = ? AND active = 1",

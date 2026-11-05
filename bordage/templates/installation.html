@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block titre %}Première installation · Suivi bordage{% endblock %}
-{% block contenu %}
-<div class="centre carte">
+{% from "_macros.html" import ecran_connexion with context %}
+{% block titre %}Première installation{% endblock %}
+{% block hors_connexion %}{% call ecran_connexion() %}
   <h1>Première installation</h1>
   <p class="muted">Crée le compte administrateur (le tien). Tu pourras ensuite créer les comptes du chef de production et de la supply chain.</p>
   <form method="post" class="form-colonne">
@@ -9,7 +9,6 @@
     <label>Identifiant <input type="text" name="username" required autocapitalize="none"></label>
     <label>Nom affiché <input type="text" name="display_name" placeholder="ex. Noam (maintenance)"></label>
     <label>Mot de passe (6 caractères minimum) <input type="password" name="password" required minlength="6"></label>
-    <button class="bouton">Créer le compte</button>
+    <button class="bouton large">Créer le compte</button>
   </form>
-</div>
-{% endblock %}
+{% endcall %}{% endblock %}

@@ -1,33 +1,35 @@
 {% extends "base.html" %}
-{% block titre %}Cadences · Suivi bordage{% endblock %}
+{% from "_macros.html" import icone %}
+{% block titre %}Cadences{% endblock %}
+{% block h1 %}Cadences attendues{% endblock %}
+{% block sous_titre %}Nombre de couettes qu'une opératrice doit border en une heure de travail effectif (hors pause et hors panne). 100 % de rendement = cadence tenue.{% endblock %}
 {% block contenu %}
-<div class="carte">
-  <h1>Cadences attendues</h1>
-  <p class="muted petit">La cadence est le nombre de couettes qu'une opératrice doit border en <b>une heure de travail effectif</b> (hors pause et hors panne). Le rendement est calculé à partir d'elle : 100 % = cadence tenue.</p>
-  <p class="muted petit">Une nouvelle cadence s'applique à partir de la date choisie. Les rendements des jours précédents restent calculés avec l'ancienne cadence, l'historique n'est donc pas faussé. Pour corriger une erreur de saisie, enregistre la bonne valeur à la même date.</p>
-  <div class="defile"><table>
-    <tr><th>Poste</th><th class="n">Cadence actuelle</th><th>Nouvelle cadence</th></tr>
-    {% for l in lignes %}
-    <tr class="{{ '' if l.poste.active else 'inactif' }}">
-      <td>{{ l.poste.name }}</td>
-      <td class="n">{% if l.actuelle %}<b>{{ ('%g' % l.actuelle).replace('.', ',') }}</b> couettes/h{% else %}<span class="badge faible">pas renseignée</span>{% endif %}</td>
-      <td><form method="post" class="ligne-form">
-        <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="poste" value="{{ l.poste.id }}">
-        <input type="text" name="valeur" inputmode="decimal" placeholder="couettes/h" required style="width:110px">
-        à partir du <input type="date" name="depuis" value="{{ aujourdhui }}" required>
-        <button class="bouton petit">Enregistrer</button>
-      </form></td>
-    </tr>
-    {% endfor %}
-  </table></div>
+<div class="kpis">
+  {% for l in lignes %}
+  <div class="kpi"><div class="tete"><i class="{{ '' if l.actuelle else 'r' }}">{{ icone('cadence') }}</i><span class="etiquette">{{ l.poste.name }}</span></div>
+    <div class="valeur">{% if l.actuelle %}{{ ('%g' % l.actuelle).replace('.', ',') }}<small style="font-size:.5em;font-weight:600"> couettes/h</small>{% else %}—{% endif %}</div>
+    <div class="sous">{{ 'cadence actuelle' if l.actuelle else 'pas encore renseignée' }}</div></div>
+  {% endfor %}
 </div>
 <div class="carte">
-  <h2>Historique</h2>
-  <div class="defile haut"><table>
-    <tr><th>Poste</th><th class="n">Cadence</th><th>Applicable à partir du</th><th>Saisie par</th><th>Le</th></tr>
+  <div class="carte-entete"><div><h2>{{ icone('plus') }}Nouvelle cadence</h2><div class="aide">Elle s'applique à partir du jour choisi. Les rendements des jours précédents restent calculés avec l'ancienne cadence, l'historique n'est pas faussé. Pour corriger une erreur de saisie, enregistre la bonne valeur à la même date.</div></div></div>
+  <form method="post" class="corps ligne-form" style="gap:14px;align-items:flex-end">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <label class="filtre"><span>Poste</span><select name="poste">{% for l in lignes %}<option value="{{ l.poste.id }}">{{ l.poste.name }}</option>{% endfor %}</select></label>
+    <label class="filtre"><span>Couettes par heure</span><input type="text" name="valeur" inputmode="decimal" placeholder="ex. 12" required style="width:140px"></label>
+    <label class="filtre"><span>À partir du</span><input type="date" name="depuis" value="{{ aujourdhui }}" required></label>
+    <button class="bouton">Enregistrer</button>
+  </form>
+</div>
+<div class="carte">
+  <div class="carte-entete"><h2>{{ icone('journal') }}Historique</h2></div>
+  <div class="defile haut"><table data-tableau="cadences">
+    <thead><tr><th data-filtre="Tous les postes">Poste</th><th class="n" data-type="n">Cadence</th><th>Applicable à partir du</th><th data-filtre="Toutes les personnes">Saisie par</th><th>Le</th></tr></thead>
+    <tbody>
     {% for h in hist %}
-    <tr><td>{{ h.poste }}</td><td class="n">{{ ('%g' % h.valeur).replace('.', ',') }} /h</td><td>{{ h.depuis|heure_locale }}</td><td>{{ h.par }}</td><td>{{ h.saisi_le|heure_locale }}</td></tr>
-    {% else %}<tr><td colspan="5" class="vide">Aucune cadence saisie pour l'instant.</td></tr>{% endfor %}
+    <tr><td class="fort">{{ h.poste }}</td><td class="n" data-v="{{ h.valeur }}">{{ ('%g' % h.valeur).replace('.', ',') }} /h</td><td data-v="{{ h.depuis }}">{{ h.depuis|jour_local }}</td><td>{{ h.par }}</td><td data-v="{{ h.saisi_le }}">{{ h.saisi_le|heure_locale }}</td></tr>
+    {% else %}<tr data-vide><td colspan="5" class="vide">Aucune cadence saisie pour l'instant.</td></tr>{% endfor %}
+    </tbody>
   </table></div>
 </div>
 {% endblock %}

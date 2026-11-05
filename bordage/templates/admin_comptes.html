@@ -1,36 +1,40 @@
 {% extends "base.html" %}
-{% block titre %}Comptes · Suivi bordage{% endblock %}
+{% from "_macros.html" import icone %}
+{% block titre %}Comptes{% endblock %}
+{% block h1 %}Comptes{% endblock %}
+{% block sous_titre %}Qui peut se connecter au tableau de bord.{% endblock %}
 {% block contenu %}
+<div class="grille g3" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:18px">
+  <div class="kpi"><div class="tete"><i class="n">{{ icone('graphe') }}</i><span class="etiquette">Supply chain</span></div><div class="sous" style="margin-top:10px">Tableau de bord, journal, export Excel et saisie des cadences.</div></div>
+  <div class="kpi"><div class="tete"><i>{{ icone('equipe') }}</i><span class="etiquette">Chef de production</span></div><div class="sous" style="margin-top:10px">Tout ce que fait la supply chain, plus l'annulation de clics erronés et la gestion des opératrices et des défauts.</div></div>
+  <div class="kpi"><div class="tete"><i class="r">{{ icone('compte') }}</i><span class="etiquette">Administrateur</span></div><div class="sous" style="margin-top:10px">Tout, plus les postes, les comptes et les réglages.</div></div>
+</div>
 <div class="carte">
-  <h1>Comptes</h1>
-  <p class="muted petit">
-    <b>Chef de production</b> : tableau de bord, journal (peut annuler un clic erroné), cadences, gestion des opératrices et des défauts.<br>
-    <b>Supply chain</b> : tableau de bord, journal, export Excel et saisie des cadences.<br>
-    <b>Administrateur</b> : tout, plus les postes, les comptes et les réglages.
-  </p>
-  <div class="defile"><table>
-    <tr><th>Identifiant</th><th>Nom</th><th>Rôle</th><th>Réinitialiser le mot de passe</th><th></th></tr>
+  <div class="defile"><table data-tableau="comptes">
+    <thead><tr><th>Identifiant</th><th>Nom</th><th data-filtre="Tous les rôles">Rôle</th><th data-pas-tri data-pas-export>Réinitialiser le mot de passe</th><th data-pas-tri data-pas-export></th></tr></thead>
+    <tbody>
     {% for c in comptes %}
     <tr class="{{ '' if c.active else 'inactif' }}">
-      <td>{{ c.username }}</td><td>{{ c.display_name }}</td><td>{{ ROLES[c.role] }}</td>
+      <td class="fort">{{ c.username }}</td><td>{{ c.display_name }}</td><td>{{ ROLES[c.role] }}</td>
       <td><form method="post" class="ligne-form">
         <input type="hidden" name="csrf" value="{{ csrf_token() }}">
         <input type="hidden" name="action" value="mot_de_passe"><input type="hidden" name="id" value="{{ c.id }}">
-        <input type="password" name="password" placeholder="nouveau mot de passe" minlength="6" style="width:170px">
+        <input type="password" name="password" placeholder="nouveau mot de passe" minlength="6" style="width:190px">
         <button class="bouton second petit">OK</button>
       </form></td>
       <td>{% if c.id != user.id %}<form method="post">
         <input type="hidden" name="csrf" value="{{ csrf_token() }}">
         <input type="hidden" name="action" value="basculer"><input type="hidden" name="id" value="{{ c.id }}">
-        <button class="bouton second petit">{{ 'Désactiver' if c.active else 'Réactiver' }}</button>
+        <button class="bouton {{ 'danger' if c.active else 'second' }} petit">{{ 'Désactiver' if c.active else 'Réactiver' }}</button>
       </form>{% endif %}</td>
     </tr>
     {% endfor %}
+    </tbody>
   </table></div>
 </div>
 <div class="carte">
-  <h2>Nouveau compte</h2>
-  <form method="post" class="form-colonne">
+  <div class="carte-entete"><h2>{{ icone('plus') }}Nouveau compte</h2></div>
+  <form method="post" class="corps form-colonne">
     <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="ajouter">
     <label>Identifiant <input type="text" name="username" required autocapitalize="none"></label>
     <label>Nom affiché <input type="text" name="display_name"></label>
@@ -40,7 +44,7 @@
       <option value="admin">Administrateur</option>
     </select></label>
     <label>Mot de passe provisoire <input type="password" name="password" required minlength="6"></label>
-    <button class="bouton">Créer</button>
+    <div><button class="bouton">Créer le compte</button></div>
   </form>
 </div>
 {% endblock %}

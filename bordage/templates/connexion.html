@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block titre %}Connexion · Suivi bordage{% endblock %}
-{% block contenu %}
-<div class="centre carte">
-  <h1>Suivi bordage</h1>
+{% from "_macros.html" import ecran_connexion with context %}
+{% block titre %}Connexion{% endblock %}
+{% block hors_connexion %}{% call ecran_connexion() %}
+  <h1>Connexion</h1>
+  <p class="muted">Accès réservé aux responsables de production.</p>
   <form method="post" class="form-colonne">
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-    <label>Identifiant <input type="text" name="username" autofocus autocapitalize="none" required></label>
-    <label>Mot de passe <input type="password" name="password" required></label>
-    <button class="bouton">Se connecter</button>
+    <label>Identifiant <input type="text" name="username" autofocus autocapitalize="none" autocomplete="username" required></label>
+    <label>Mot de passe <input type="password" name="password" autocomplete="current-password" required></label>
+    <button class="bouton large">Se connecter</button>
   </form>
-</div>
-{% endblock %}
+{% endcall %}{% endblock %}

@@ -1,37 +1,42 @@
 {% extends "base.html" %}
-{% block titre %}Journal · Suivi bordage{% endblock %}
+{% from "_macros.html" import icone %}
+{% block titre %}Journal des clics{% endblock %}
+{% block h1 %}Journal des clics{% endblock %}
+{% block sous_titre %}Tout ce qui a été appuyé sur les tablettes · {{ libelle }}{% endblock %}
 {% block contenu %}
-<div class="carte">
-  <h1>Journal des clics</h1>
-  <form class="filtres" method="get" style="margin-bottom:1rem">
+<form class="carte remplie ligne-form" method="get" style="gap:14px;align-items:flex-end">
+  <label class="filtre"><span>Période</span>
     <select name="periode" onchange="document.getElementById('perso').classList.toggle('visible', this.value==='perso')">
-      {% for v, l in [('quart','Quart en cours'),('jour',"Aujourd'hui"),('hier','Hier'),('semaine','7 jours'),('perso','Dates…')] %}
+      {% for v, l in [('quart','Quart en cours'),('jour',"Aujourd'hui"),('hier','Hier'),('semaine','7 derniers jours'),('mois','30 derniers jours'),('perso','Dates…')] %}
       <option value="{{ v }}" {{ 'selected' if request.args.get('periode','jour') == v }}>{{ l }}</option>{% endfor %}
-    </select>
-    <span id="perso" class="perso {{ 'visible' if request.args.get('periode') == 'perso' }}">
-      <input type="date" name="du" value="{{ request.args.get('du','') }}"> au <input type="date" name="au" value="{{ request.args.get('au','') }}">
-    </span>
-    <select name="poste"><option value="">Tous les postes</option>
+    </select></label>
+  <div class="filtre perso {{ 'visible' if request.args.get('periode') == 'perso' }}" id="perso"><span>Du … au …</span>
+    <div class="ligne-form"><input type="date" name="du" value="{{ request.args.get('du','') }}"><input type="date" name="au" value="{{ request.args.get('au','') }}"></div></div>
+  <label class="filtre"><span>Poste</span>
+    <select name="poste"><option value="">Tous</option>
       {% for p in postes %}<option value="{{ p.id }}" {{ 'selected' if request.args.get('poste')|int == p.id }}>{{ p.name }}</option>{% endfor %}
-    </select>
-    <button class="bouton">Afficher</button>
-    <span class="muted petit">{{ libelle }} · {{ events|length }} événement(s){% if events|length == 2000 %} (2000 max affichés){% endif %}</span>
-  </form>
-  {% if peut_corriger %}<p class="muted petit">Une couette comptée par erreur ou une panne déclarée par erreur ? Annule le clic ici : il sera ignoré dans tous les calculs (et tu peux le rétablir).</p>{% endif %}
-  <div class="defile"><table>
-    <tr><th>Heure</th><th>Poste</th><th>Opératrice</th><th>Action</th><th>Détail</th>{% if peut_corriger %}<th></th>{% endif %}</tr>
+    </select></label>
+  <button class="bouton">Afficher</button>
+</form>
+<div class="carte">
+  <div class="carte-entete"><div><h2>{{ icone('journal') }}{{ events|length }} clic(s){% if events|length == 2000 %} · 2000 au maximum affichés{% endif %}</h2>
+    {% if peut_corriger %}<div class="aide">Une couette ou une panne déclarée par erreur ? Annule le clic : il est ignoré dans tous les calculs, et tu peux le rétablir.</div>{% endif %}</div></div>
+  <div class="defile haut"><table data-tableau="journal">
+    <thead><tr><th>Heure</th><th data-filtre="Tous les postes">Poste</th><th data-filtre="Toutes les opératrices">Opératrice</th><th data-filtre="Toutes les actions">Action</th><th>Détail</th>{% if peut_corriger %}<th data-pas-tri data-pas-export></th>{% endif %}</tr></thead>
+    <tbody>
     {% for e in events %}
     <tr class="{{ 'annule' if e.cancelled }}">
-      <td>{{ e.ts|heure_locale }}</td><td>{{ e.poste }}</td><td>{{ e.operatrice or '—' }}</td>
+      <td data-v="{{ e.ts }}">{{ e.ts|heure_locale }}</td><td>{{ e.poste }}</td><td class="fort">{{ e.operatrice or '—' }}</td>
       <td>{{ LIBELLES.get(e.type, e.type) }}</td>
       <td>{% if e.of_number %}{{ e.of_number }}{% elif e.defaut %}{{ e.defaut }}{% endif %}{% if e.cancelled %} <span class="petit">(annulé par {{ e.cancelled_by }})</span>{% endif %}</td>
       {% if peut_corriger %}<td>{% if e.type not in ('connexion', 'deconnexion') %}
         <form method="post" action="{{ url_for('journal_annuler', eid=e.id) }}">
           <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="retour" value="{{ request.full_path }}">
-          <button class="bouton second petit">{{ 'Rétablir' if e.cancelled else 'Annuler' }}</button>
+          <button class="bouton {{ 'second' if e.cancelled else 'danger' }} petit">{{ icone('annuler') }}{{ 'Rétablir' if e.cancelled else 'Annuler' }}</button>
         </form>{% endif %}</td>{% endif %}
     </tr>
-    {% else %}<tr><td colspan="6" class="vide">Aucun clic sur cette période.</td></tr>{% endfor %}
+    {% else %}<tr data-vide><td colspan="6" class="vide">Aucun clic sur cette période.</td></tr>{% endfor %}
+    </tbody>
   </table></div>
 </div>
 {% endblock %}
