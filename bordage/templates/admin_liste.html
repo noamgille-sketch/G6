@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block titre %}{{ titre }} · Suivi bordage{% endblock %}
+{% block contenu %}
+<div class="carte">
+  <h1>{{ titre }}</h1>
+  {% if liste == 'operatrices' %}<p class="muted petit">Les opératrices actives apparaissent sur toutes les tablettes. Désactiver une opératrice la retire des tablettes sans effacer son historique.</p>
+  {% else %}<p class="muted petit">Ces défauts sont proposés à l'opératrice quand elle appuie sur « Problème qualité ».</p>{% endif %}
+  <form method="post" class="ligne-form" style="margin-bottom:1rem">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="ajouter">
+    <input type="text" name="texte" placeholder="{{ aide }}" required maxlength="60" style="min-width:260px">
+    <button class="bouton">Ajouter</button>
+  </form>
+  <div class="defile"><table>
+    <tr><th>{{ aide }}</th><th>État</th><th></th></tr>
+    {% for r in rows %}
+    <tr class="{{ '' if r.active else 'inactif' }}">
+      <td>
+        <form method="post" class="ligne-form">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="renommer"><input type="hidden" name="id" value="{{ r.id }}">
+          <input type="text" name="texte" value="{{ r.texte }}" maxlength="60" style="min-width:240px">
+          <button class="bouton second petit">Renommer</button>
+        </form>
+      </td>
+      <td>{{ 'Active' if r.active else 'Désactivée' }}</td>
+      <td>
+        <form method="post" class="ligne-form">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="basculer"><input type="hidden" name="id" value="{{ r.id }}">
+          <button class="bouton second petit">{{ 'Désactiver' if r.active else 'Réactiver' }}</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}<tr><td colspan="3" class="vide">Rien pour l'instant.</td></tr>{% endfor %}
+  </table></div>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block titre %}Tableau de bord · Suivi bordage{% endblock %}
+{% block contenu %}
+<div class="carte">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:.5rem">
+    <h2>Postes en ce moment <span class="muted petit" id="direct-quart"></span></h2>
+    <span class="muted petit">Actualisé toutes les 15 s</span>
+  </div>
+  <div class="direct" id="direct"><div class="vide">Chargement…</div></div>
+</div>
+
+<div class="carte filtres" id="filtres">
+  <div class="segments" id="periodes">
+    <button data-p="quart">Quart en cours</button>
+    <button data-p="jour" class="actif">Aujourd'hui</button>
+    <button data-p="hier">Hier</button>
+    <button data-p="semaine">7 jours</button>
+    <button data-p="mois">30 jours</button>
+    <button data-p="perso">Dates…</button>
+  </div>
+  <span class="perso" id="perso"><input type="date" id="du"> au <input type="date" id="au"><button class="bouton petit" id="appliquer">OK</button></span>
+  <select id="f-quart"><option value="">Tous les quarts</option>{% for q in quarts %}<option>{{ q }}</option>{% endfor %}</select>
+  <select id="f-operatrice"><option value="">Toutes les opératrices</option>{% for o in operatrices %}<option value="{{ o.id }}">{{ o.name }}{{ '' if o.active else ' (inactive)' }}</option>{% endfor %}</select>
+  <select id="f-poste"><option value="">Tous les postes</option>{% for p in postes %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select>
+  <a class="bouton second" id="export" href="#">Exporter (Excel)</a>
+  <span class="muted petit" id="libelle"></span>
+</div>
+
+<div class="kpis" id="kpis" style="margin-bottom:1rem"></div>
+
+<div class="grille g2">
+  <div class="carte"><h2>Rendement par opératrice</h2><p class="muted petit">La ligne pointillée marque l'objectif de 100 %.</p><div class="graphe"><canvas id="g-rendement"></canvas></div></div>
+  <div class="carte"><h2 id="t-production">Couettes produites</h2><p class="muted petit">Par poste. Choisis une opératrice dans le filtre pour ne voir que sa production.</p><div class="graphe"><canvas id="g-production"></canvas></div></div>
+  <div class="carte" id="c-tendance"><h2>Rendement jour par jour</h2><p class="muted petit">Par poste. Choisis une opératrice dans le filtre pour voir sa courbe.</p><div class="graphe"><canvas id="g-tendance"></canvas></div></div>
+  <div class="carte"><h2>Défauts qualité déclarés</h2><div class="graphe"><canvas id="g-defauts"></canvas></div></div>
+  <div class="carte"><h2>Temps de panne par poste</h2><div class="graphe"><canvas id="g-pannes"></canvas></div></div>
+</div>
+
+<div class="carte"><h2>Par opératrice</h2><div class="defile" id="t-operatrices"></div></div>
+<div class="carte"><h2>Détail par quart</h2><div class="defile haut" id="t-detail"></div></div>
+<div class="carte"><h2>Par OF</h2><div class="defile haut" id="t-of"></div></div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/chart.umd.js') }}"></script>
+<script>
+window.POSTES = {{ postes|map(attribute='name')|list|tojson }};
+</script>
+<script src="{{ url_for('static', filename='tableau.js') }}"></script>
+{% endblock %}

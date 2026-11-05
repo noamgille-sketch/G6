@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block titre %}Comptes · Suivi bordage{% endblock %}
+{% block contenu %}
+<div class="carte">
+  <h1>Comptes</h1>
+  <p class="muted petit">
+    <b>Chef de production</b> : tableau de bord, journal (peut annuler un clic erroné), gestion des opératrices et des défauts.<br>
+    <b>Supply chain</b> : tableau de bord, journal et export Excel, en lecture seule.<br>
+    <b>Administrateur</b> : tout, plus les postes, les comptes et les réglages.
+  </p>
+  <div class="defile"><table>
+    <tr><th>Identifiant</th><th>Nom</th><th>Rôle</th><th>Réinitialiser le mot de passe</th><th></th></tr>
+    {% for c in comptes %}
+    <tr class="{{ '' if c.active else 'inactif' }}">
+      <td>{{ c.username }}</td><td>{{ c.display_name }}</td><td>{{ ROLES[c.role] }}</td>
+      <td><form method="post" class="ligne-form">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="mot_de_passe"><input type="hidden" name="id" value="{{ c.id }}">
+        <input type="password" name="password" placeholder="nouveau mot de passe" minlength="6" style="width:170px">
+        <button class="bouton second petit">OK</button>
+      </form></td>
+      <td>{% if c.id != user.id %}<form method="post">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="basculer"><input type="hidden" name="id" value="{{ c.id }}">
+        <button class="bouton second petit">{{ 'Désactiver' if c.active else 'Réactiver' }}</button>
+      </form>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table></div>
+</div>
+<div class="carte">
+  <h2>Nouveau compte</h2>
+  <form method="post" class="form-colonne">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="ajouter">
+    <label>Identifiant <input type="text" name="username" required autocapitalize="none"></label>
+    <label>Nom affiché <input type="text" name="display_name"></label>
+    <label>Rôle <select name="role">
+      <option value="chef_prod">Chef de production</option>
+      <option value="supply_chain">Supply chain</option>
+      <option value="admin">Administrateur</option>
+    </select></label>
+    <label>Mot de passe provisoire <input type="password" name="password" required minlength="6"></label>
+    <button class="bouton">Créer</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block titre %}Postes · Suivi bordage{% endblock %}
+{% block contenu %}
+<div class="carte">
+  <h1>Postes &amp; tablettes</h1>
+  <p class="muted petit">Sur chaque tablette, ouvre le lien de son poste dans le navigateur (Chrome) puis « Ajouter à l'écran d'accueil ». Le lien suffit à identifier le poste : pas de mot de passe à taper sur la tablette. Si un lien circule là où il ne devrait pas, génère-en un nouveau.</p>
+  <p class="muted petit">Cadence : nombre de couettes par heure attendues sur le poste (laisser vide = valeur par défaut, {{ cadence_defaut }} /h, modifiable dans Réglages). C'est la base du calcul du rendement.</p>
+  <div class="defile"><table>
+    <tr><th>Poste</th><th>Cadence (couettes/h)</th><th>Lien de la tablette</th><th></th></tr>
+    {% for p in postes %}
+    <tr class="{{ '' if p.active else 'inactif' }}">
+      <td colspan="2">
+        <form method="post" class="ligne-form">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="modifier"><input type="hidden" name="id" value="{{ p.id }}">
+          <input type="text" name="nom" value="{{ p.name }}" maxlength="40" style="width:140px">
+          <input type="text" name="cadence" value="{{ p.cadence if p.cadence is not none else '' }}" placeholder="{{ cadence_defaut }}" style="width:90px" inputmode="decimal">
+          <button class="bouton second petit">Enregistrer</button>
+        </form>
+      </td>
+      <td>{% set lien = url_for('tablette', code=p.token, _external=True) %}<code class="lien">{{ lien }}</code> <a href="{{ lien }}" target="_blank" class="petit">ouvrir</a></td>
+      <td style="display:flex;gap:.3rem">
+        <form method="post" onsubmit="return confirm('L\'ancien lien ne marchera plus : il faudra ouvrir le nouveau sur la tablette. Continuer ?')">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="nouveau_lien"><input type="hidden" name="id" value="{{ p.id }}">
+          <button class="bouton second petit">Nouveau lien</button>
+        </form>
+        <form method="post">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="basculer"><input type="hidden" name="id" value="{{ p.id }}">
+          <button class="bouton second petit">{{ 'Désactiver' if p.active else 'Réactiver' }}</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  <form method="post" style="margin-top:1rem">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="ajouter">
+    <button class="bouton second">+ Ajouter un poste</button>
+  </form>
+</div>
+{% endblock %}

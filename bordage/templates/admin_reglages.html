@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block titre %}Réglages · Suivi bordage{% endblock %}
+{% block contenu %}
+<form method="post" class="carte">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+  <h1>Réglages</h1>
+  <h2>Rendement</h2>
+  <div class="form-colonne">
+    <label>Cadence attendue par défaut (couettes par heure productive)
+      <input type="text" name="cadence_defaut" value="{{ s.cadence_defaut }}" inputmode="decimal"></label>
+  </div>
+  <p class="muted petit">Rendement = couettes réalisées ÷ (cadence × temps productif). Temps productif = temps de présence − pause − pannes.</p>
+
+  <h2 style="margin-top:1.5rem">Quarts</h2>
+  <p class="muted petit">Si l'heure de fin est avant l'heure de début, le quart passe minuit. La pause est retirée du temps de présence au prorata (une opératrice présente la moitié du quart se voit retirer la moitié de la pause). Laisse un nom vide pour supprimer un quart.</p>
+  <table style="width:auto">
+    <tr><th>Nom</th><th>Début</th><th>Fin</th><th>Pause (min)</th></tr>
+    {% for q in s.quarts + [{'nom': '', 'debut': '', 'fin': '', 'pause': ''}] %}
+    <tr>
+      <td><input type="text" name="q_nom" value="{{ q.nom }}" style="width:140px" placeholder="{{ 'Nouveau quart' if not q.nom }}"></td>
+      <td><input type="time" name="q_debut" value="{{ q.debut }}"></td>
+      <td><input type="time" name="q_fin" value="{{ q.fin }}"></td>
+      <td><input type="number" name="q_pause" value="{{ q.pause }}" min="0" style="width:80px"></td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <h2 style="margin-top:1.5rem">Tablettes</h2>
+  <div class="form-colonne">
+    <label style="display:flex;gap:.5rem;align-items:center;color:var(--texte)">
+      <input type="checkbox" name="afficher_compteur" value="1" {{ 'checked' if s.afficher_compteur }}>
+      Afficher à l'opératrice son nombre de couettes du quart (jamais de graphique ni de pourcentage)</label>
+    <label>Délai pour annuler une couette comptée par erreur (secondes, 0 = pas d'annulation)
+      <input type="number" name="delai_annulation" value="{{ s.delai_annulation }}" min="0" max="600"></label>
+  </div>
+  <p style="margin-top:1.5rem"><button class="bouton">Enregistrer</button></p>
+</form>
+{% endblock %}

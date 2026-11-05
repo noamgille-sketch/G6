@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block titre %}Suivi bordage{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+{% if user %}
+<header class="barre">
+  <span class="marque">Suivi bordage</span>
+  <nav>
+    <a href="{{ url_for('tableau') }}" class="{{ 'actif' if request.endpoint == 'tableau' }}">Tableau de bord</a>
+    <a href="{{ url_for('journal') }}" class="{{ 'actif' if request.endpoint == 'journal' }}">Journal</a>
+    {% if user.role in ('admin', 'chef_prod') %}
+    <a href="{{ url_for('admin_liste', liste='operatrices') }}" class="{{ 'actif' if request.view_args and request.view_args.get('liste') == 'operatrices' }}">Opératrices</a>
+    <a href="{{ url_for('admin_liste', liste='defauts') }}" class="{{ 'actif' if request.view_args and request.view_args.get('liste') == 'defauts' }}">Défauts</a>
+    {% endif %}
+    {% if user.role == 'admin' %}
+    <a href="{{ url_for('admin_postes') }}" class="{{ 'actif' if request.endpoint == 'admin_postes' }}">Postes &amp; tablettes</a>
+    <a href="{{ url_for('admin_comptes') }}" class="{{ 'actif' if request.endpoint == 'admin_comptes' }}">Comptes</a>
+    <a href="{{ url_for('admin_reglages') }}" class="{{ 'actif' if request.endpoint == 'admin_reglages' }}">Réglages</a>
+    {% endif %}
+  </nav>
+  <div class="compte">
+    <a href="{{ url_for('mot_de_passe') }}" style="color:#d7dde4">{{ user.display_name }} · {{ ROLES[user.role] }}</a>
+    <form method="post" action="{{ url_for('deconnexion') }}"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><button>Se déconnecter</button></form>
+  </div>
+</header>
+{% endif %}
+<main>
+  {% for cat, msg in get_flashed_messages(with_categories=true) %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}
+  {% block contenu %}{% endblock %}
+</main>
+{% block scripts %}{% endblock %}
+</body>
+</html>

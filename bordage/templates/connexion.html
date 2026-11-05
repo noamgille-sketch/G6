@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block titre %}Connexion · Suivi bordage{% endblock %}
+{% block contenu %}
+<div class="centre carte">
+  <h1>Suivi bordage</h1>
+  <form method="post" class="form-colonne">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <label>Identifiant <input type="text" name="username" autofocus autocapitalize="none" required></label>
+    <label>Mot de passe <input type="password" name="password" required></label>
+    <button class="bouton">Se connecter</button>
+  </form>
+</div>
+{% endblock %}
