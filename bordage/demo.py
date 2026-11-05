@@ -74,7 +74,7 @@ for j in range(15):
                     t += timedelta(minutes=random.randint(5, 40))
                     add(poste, op, "panne_fin", t)
                 if random.random() < 0.05:
-                    add(poste, op, "qualite", t, defect=random.choice(defauts[:5] + defauts[:2]))
+                    add(poste, op, "qualite", t, defect=random.choice(defauts + defauts[:2]))
                 if random.random() < 0.004:
                     of_num += 1
                     add(poste, op, "changement_of", t, of=f"OF{of_num}")

@@ -94,14 +94,11 @@ DEFAULT_SETTINGS = {
 }
 
 DEFAULT_DEFECTS = [
-    "Couture de travers",
+    "Défaut tissage",
+    "Taches",
+    "Couture mammut",
     "Point sauté",
-    "Tissu taché",
-    "Tissu déchiré / troué",
-    "Mauvaise dimension",
-    "Étiquette manquante",
-    "Garnissage mal réparti",
-    "Autre",
+    "Défaut étiquette",
 ]
 
 
