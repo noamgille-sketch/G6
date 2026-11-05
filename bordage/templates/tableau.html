@@ -45,7 +45,8 @@
 
 <div class="grille g3">
   <div class="carte">
-    <div class="carte-entete"><div><h2>{{ icone('equipe') }}Rendement par opératrice</h2><div class="aide">Pointillés : objectif 100 %</div></div></div>
+    <div class="carte-entete"><div><h2>{{ icone('equipe') }}<span id="t-indicateur">Rendement</span> par opératrice</h2><div class="aide" id="a-indicateur">Pointillés : objectif 100 %</div></div>
+      <div class="segments" id="indicateur"><button data-i="rendement" class="actif">Rendement</button><button data-i="trs">TRS</button></div></div>
     <div class="graphe grand"><canvas id="g-rendement"></canvas></div>
   </div>
   <div class="carte">

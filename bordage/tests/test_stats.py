@@ -44,6 +44,7 @@ def test_rendement_simple():
     assert round(l.attendu, 3) == 15
     assert round(l.rendement, 1) == 80.0
     assert round(l.disponibilite, 1) == 75.0
+    assert l.qualite == 100 and round(l.trs, 1) == 60.0   # 75 % x 80 % x 100 %
 
 
 def test_pause_au_prorata():

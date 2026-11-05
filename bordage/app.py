@@ -441,6 +441,8 @@ def create_app(db_path=None):
             "nb_pannes": l.nb_pannes,
             "defauts": l.nb_defauts,
             "taux_defaut": round(100.0 * l.nb_defauts / l.couettes, 1) if l.couettes else None,
+            "qualite": None if l.qualite is None else round(l.qualite, 1),
+            "trs": None if l.trs is None else round(l.trs, 1),
             **extra,
         }
 
@@ -630,14 +632,14 @@ def create_app(db_path=None):
         w = csv.writer(buf, delimiter=";")
         w.writerow(["Jour", "Quart", "Opératrice", "Poste", "Présence (min)", "Pause (min)",
                     "Panne (min)", "Temps productif (min)", "Nb pannes", "Couettes",
-                    "Couettes attendues", "Rendement (%)", "Disponibilité (%)",
-                    "Couettes/heure", "Défauts qualité", "Détail défauts"])
+                    "Couettes attendues", "Rendement / performance (%)", "Disponibilité (%)",
+                    "Qualité (%)", "TRS (%)", "Couettes/heure", "Défauts qualité", "Détail défauts"])
         fr = lambda x: "" if x is None else f"{x:.1f}".replace(".", ",")
         for l in lignes:
             w.writerow([l.jour, l.quart, noms_op.get(l.operator_id, "?"), noms_poste.get(l.poste_id, "?"),
                         fr(l.presence_s / 60), fr(l.pause_s / 60), fr(l.panne_s / 60), fr(l.productif_s / 60),
                         l.nb_pannes, l.couettes, fr(l.attendu), fr(l.rendement), fr(l.disponibilite),
-                        fr(l.cadence_reelle), l.nb_defauts,
+                        fr(l.qualite), fr(l.trs), fr(l.cadence_reelle), l.nb_defauts,
                         ", ".join(f"{noms_def.get(k, '?')} x{v}" for k, v in l.defauts.items())])
         # BOM pour qu'Excel lise bien les accents.
         return Response("﻿" + buf.getvalue(), mimetype="text/csv",

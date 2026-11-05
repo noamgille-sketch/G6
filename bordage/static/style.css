@@ -268,3 +268,8 @@ th.triable.desc::after { content: "↓"; opacity: 1; color: var(--bleu); }
   .ecran-connexion .vitrine { padding: 28px; gap: 22px; }
   .ecran-connexion .vitrine h2 { font-size: 1.5rem; }
 }
+.kpi .decompo { display: grid; gap: 6px; margin-top: 14px; font-size: .82rem; }
+.kpi .decompo div { display: flex; justify-content: space-between; gap: 10px; }
+.kpi.vedette .decompo span { color: #b9c5da; }
+.kpi.vedette .decompo b { color: #fff; font-variant-numeric: tabular-nums; }
+.carte-entete .segments button { height: 28px; font-size: .85rem; }

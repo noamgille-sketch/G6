@@ -25,6 +25,7 @@
 
   var LIBELLES = { quart: "Quart en cours", jour: "Aujourd'hui", hier: "Hier", semaine: "7 derniers jours", mois: "30 derniers jours", perso: "Dates choisies" };
   var periode = "jour";
+  var indicateur = "rendement", derniers = null;
   var graphes = {};
   function $(id) { return document.getElementById(id); }
 
@@ -38,6 +39,10 @@
   function nb(v) { return v == null ? "—" : v.toLocaleString("fr-FR", { maximumFractionDigits: 1 }); }
   function niveau(v) { return v == null ? "neutre" : v >= 95 ? "bon" : v >= 80 ? "moyen" : "faible"; }
   function badge(v) { return '<span class="badge ' + niveau(v) + '">' + pct(v) + "</span>"; }
+  // Repères usuels du TRS : 85 % et plus = très bon, moins de 65 % = faible.
+  function niveauTrs(v) { return v == null ? "neutre" : v >= 85 ? "bon" : v >= 65 ? "moyen" : "faible"; }
+  function badgeTrs(v) { return '<span class="badge ' + niveauTrs(v) + '">' + pct(v) + "</span>"; }
+  function jaugeTrs(v) { return '<div class="jauge"><i class="' + niveauTrs(v) + '" style="width:' + Math.min(100, Math.max(0, v || 0)) + '%"></i></div>'; }
   function jauge(v) { return '<div class="jauge"><i class="' + niveau(v) + '" style="width:' + Math.min(100, Math.max(0, v || 0)) + '%"></i></div>'; }
   function esc(t) { var d = document.createElement("div"); d.textContent = t == null ? "" : String(t); return d.innerHTML; }
   function heure(iso) { return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }); }
@@ -106,6 +111,7 @@
   }
 
   function afficher(d) {
+    derniers = d;
     $("libelle").textContent = d.periode.libelle;
     var alerte = $("alerte-cadence");
     if (d.sans_cadence.length) {
@@ -120,10 +126,13 @@
         '<div class="valeur">' + valeur + '</div><div class="sous">' + sous + "</div>" + (extra || "") + "</div>";
     }
     $("kpis").innerHTML = [
-      kpi("hausse", "", "Rendement", pct(t.rendement), "réalisé ÷ attendu", true, jauge(t.rendement)),
+      kpi("activite", "", "TRS", pct(t.trs), "taux de rendement synthétique", true, jaugeTrs(t.trs) +
+        '<div class="decompo"><div><span>Disponibilité</span><b>' + pct(t.disponibilite) + "</b></div>" +
+        "<div><span>× Performance</span><b>" + pct(t.rendement) + "</b></div>" +
+        "<div><span>× Qualité</span><b>" + pct(t.qualite) + "</b></div></div>"),
+      kpi("hausse", "", "Rendement", pct(t.rendement), "couettes réalisées ÷ attendues", false, jauge(t.rendement)),
       kpi("couches", "", "Couettes", nb(t.couettes), "attendues : " + nb(t.attendu)),
       kpi("cadence", "n", "Cadence réelle", t.cadence == null ? "—" : nb(t.cadence) + "<small style='font-size:.55em;font-weight:600'> /h</small>", "par heure productive"),
-      kpi("activite", "v", "Disponibilité", pct(t.disponibilite), "temps hors panne"),
       kpi("cle", "r", "Pannes", duree(t.panne_s), t.nb_pannes + " panne" + (t.nb_pannes > 1 ? "s" : "")),
       kpi("alerte", "r", "Défauts qualité", nb(t.defauts), t.taux_defaut == null ? "—" : pct(t.taux_defaut) + " des couettes"),
       kpi("horloge", "n", "Présence", duree(t.presence_s), "dont pause " + duree(t.pause_s))
@@ -163,23 +172,38 @@
   };
 
   function graphRendement(ops) {
-    var lignes = ops.filter(function (o) { return o.rendement != null; });
+    var k = indicateur, nomK = k === "trs" ? "TRS" : "rendement";
+    var lignes = ops.filter(function (o) { return o[k] != null; }).sort(function (a, b) { return b[k] - a[k]; });
+    $("t-indicateur").textContent = k === "trs" ? "TRS" : "Rendement";
+    $("a-indicateur").textContent = k === "trs" ? "Disponibilité × performance × qualité" : "Pointillés : objectif 100 %";
     if (vide("g-rendement", !lignes.length)) return;
     remplacer("g-rendement", {
       type: "bar",
       data: { labels: lignes.map(function (o) { return o.nom; }),
-        datasets: [{ data: lignes.map(function (o) { return o.rendement; }), backgroundColor: BLEU, hoverBackgroundColor: NUIT,
+        datasets: [{ data: lignes.map(function (o) { return o[k]; }), backgroundColor: BLEU, hoverBackgroundColor: NUIT,
                      borderRadius: 4, borderSkipped: "start", maxBarThickness: 20 }] },
       options: {
         indexAxis: "y",
         plugins: { legend: { display: false }, tooltip: { callbacks: {
-          label: function (c) { var o = lignes[c.dataIndex]; return [pct(o.rendement) + " de rendement", o.couettes + " couettes / " + nb(o.attendu) + " attendues"]; } } } },
+          label: function (c) {
+            var o = lignes[c.dataIndex];
+            return k === "trs"
+              ? ["TRS " + pct(o.trs), "Disponibilité " + pct(o.disponibilite), "Performance " + pct(o.rendement), "Qualité " + pct(o.qualite)]
+              : [pct(o.rendement) + " de rendement", o.couettes + " couettes / " + nb(o.attendu) + " attendues"];
+          } } } },
         scales: { x: { beginAtZero: true, suggestedMax: 110, ticks: { callback: function (v) { return v + " %"; } } },
                   y: { grid: { display: false }, ticks: { color: "#14213a" } } }
       },
-      plugins: [objectif]
+      plugins: k === "rendement" ? [objectif] : []
     });
   }
+  Array.prototype.forEach.call(document.querySelectorAll("#indicateur button"), function (b) {
+    b.addEventListener("click", function () {
+      indicateur = b.dataset.i;
+      Array.prototype.forEach.call(document.querySelectorAll("#indicateur button"), function (x) { x.classList.toggle("actif", x === b); });
+      if (derniers) graphRendement(derniers.operatrices);
+    });
+  });
 
   function graphProduction(p) {
     $("t-production").textContent = p.par_heure ? "Couettes produites par heure" : "Couettes produites par jour";
@@ -263,7 +287,8 @@
   var MESURES = [
     ["Couettes", "couettes", { n: 1, f: nb }], ["Attendues", "attendu", { n: 1, f: nb }], ["Rendement", "rendement", { n: 1, f: badge }],
     ["Cadence /h", "cadence", { n: 1, f: nb }], ["Présence", "presence_s", { n: 1, f: duree }], ["Pannes", "panne_s", { n: 1, f: duree }],
-    ["Disponibilité", "disponibilite", { n: 1, f: pct }], ["Défauts", "defauts", { n: 1, f: nb }], ["Taux défaut", "taux_defaut", { n: 1, f: pct }]
+    ["Disponibilité", "disponibilite", { n: 1, f: pct }], ["Qualité", "qualite", { n: 1, f: pct }], ["TRS", "trs", { n: 1, f: badgeTrs }],
+    ["Défauts", "defauts", { n: 1, f: nb }]
   ];
   function rendre(conteneur, id, colonnes, lignes) {
     $(conteneur).innerHTML = table(id, colonnes, lignes);

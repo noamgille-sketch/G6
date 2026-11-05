@@ -20,6 +20,9 @@ Pour chaque opératrice, poste et quart :
                           ne réécrit pas les rendements passés)
     rendement (%)       = couettes réalisées / couettes attendues x 100
     disponibilité (%)   = (présence - pause - panne) / (présence - pause) x 100
+    qualité (%)         = (couettes - défauts déclarés) / couettes x 100
+    TRS (%)             = disponibilité x rendement (performance) x qualité
+                        = couettes bonnes / (cadence x temps requis)
 
 Ce module n'utilise ni Flask ni SQLite pour pouvoir être testé seul.
 """
@@ -222,6 +225,22 @@ class Ligne:
         if base <= 0:
             return None
         return 100.0 * self.productif_s / base
+
+    @property
+    def qualite(self):
+        """Part des couettes sans défaut déclaré (chaque « problème qualité »
+        compte pour une couette non conforme)."""
+        if not self.couettes:
+            return None
+        return 100.0 * max(0, self.couettes - self.nb_defauts) / self.couettes
+
+    @property
+    def trs(self):
+        """Taux de rendement synthétique = disponibilité x performance x qualité."""
+        d, p, q = self.disponibilite, self.rendement, self.qualite
+        if d is None or p is None or q is None:
+            return None
+        return d * p * q / 10000.0
 
     @property
     def cadence_reelle(self):

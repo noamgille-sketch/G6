@@ -50,6 +50,8 @@ Pour chaque opératrice, sur chaque quart :
 | Couettes attendues | temps productif (en heures) × cadence du poste |
 | **Rendement** | couettes réalisées ÷ couettes attendues × 100 |
 | Disponibilité | temps productif ÷ (présence − pause) × 100 |
+| Qualité | (couettes − défauts déclarés) ÷ couettes × 100 |
+| **TRS** | disponibilité × performance (le rendement) × qualité |
 
 Exemple : 7 h de présence, 20 min de pause, 40 min de panne, donc 6 h productives. À 12 couettes/h, on attend 72 couettes ; elle en a fait 65, soit un rendement de **90,3 %**.
 
