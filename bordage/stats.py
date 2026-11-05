@@ -20,7 +20,9 @@ Pour chaque opératrice, poste et quart :
                           ne réécrit pas les rendements passés)
     rendement (%)       = couettes réalisées / couettes attendues x 100
     disponibilité (%)   = (présence - pause - panne) / (présence - pause) x 100
-    qualité (%)         = (couettes - défauts déclarés) / couettes x 100
+    qualité (%)         = couettes 1er choix / couettes x 100
+                          (une couette déclarée en défaut passe en second choix
+                          ou au rebut ; si elle est retouchée, elle reste 1er choix)
     TRS (%)             = disponibilité x rendement (performance) x qualité
                         = couettes bonnes / (cadence x temps requis)
 
@@ -31,6 +33,8 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta, timezone
 
 MAX_SANS_QUART = timedelta(hours=12)
+# Ce que devient une couette déclarée en défaut.
+DECISIONS = ("second_choix", "retouche", "rebut")
 # En dessous de ce temps productif, un pourcentage n'a pas de sens (1 couette
 # en 30 secondes ferait des milliers de %) : on n'en affiche pas.
 PRODUCTIF_MIN_S = 5 * 60
@@ -201,6 +205,7 @@ class Ligne:
     couettes: int = 0
     attendu: float = 0.0
     sans_cadence_s: float = 0.0   # temps productif sans cadence renseignée
+    # {(defect_id, décision): nombre}
     defauts: dict = field(default_factory=dict)
 
     @property
@@ -210,6 +215,19 @@ class Ligne:
     @property
     def nb_defauts(self):
         return sum(self.defauts.values())
+
+    def nb_decision(self, decision):
+        return sum(v for (_, d), v in self.defauts.items() if d == decision)
+
+    @property
+    def non_conformes(self):
+        """Couettes qui ne sortent pas en 1er choix (second choix ou rebut).
+        Un défaut déclaré sans décision compte comme second choix."""
+        return self.nb_defauts - self.nb_decision("retouche")
+
+    @property
+    def premier_choix(self):
+        return max(0, self.couettes - self.non_conformes)
 
     @property
     def rendement(self):
@@ -228,11 +246,10 @@ class Ligne:
 
     @property
     def qualite(self):
-        """Part des couettes sans défaut déclaré (chaque « problème qualité »
-        compte pour une couette non conforme)."""
+        """Part des couettes sorties en 1er choix."""
         if not self.couettes:
             return None
-        return 100.0 * max(0, self.couettes - self.nb_defauts) / self.couettes
+        return 100.0 * self.premier_choix / self.couettes
 
     @property
     def trs(self):
@@ -322,7 +339,7 @@ def calculer(events, debut, fin, config, tz, cadence, maintenant=None):
         if e["type"] == "couette":
             l.couettes += 1
         else:
-            k = e.get("defect_id")
+            k = (e.get("defect_id"), e.get("decision"))
             l.defauts[k] = l.defauts.get(k, 0) + 1
 
     return sorted(lignes.values(), key=lambda l: (l.jour, l.quart, l.poste_id))

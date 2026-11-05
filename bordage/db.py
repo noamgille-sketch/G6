@@ -51,6 +51,8 @@ CREATE TABLE IF NOT EXISTS events (
     ts TEXT NOT NULL,            -- UTC, ISO 8601
     of_number TEXT,
     defect_id INTEGER REFERENCES defects(id),
+    -- Pour un défaut qualité : second_choix, retouche ou rebut.
+    decision TEXT,
     cancelled INTEGER NOT NULL DEFAULT 0,
     cancelled_by TEXT,
     received_at TEXT NOT NULL
@@ -126,6 +128,10 @@ def init_db(path):
     conn = sqlite3.connect(path)
     conn.execute("PRAGMA journal_mode = WAL")
     conn.executescript(SCHEMA)
+    # Bases créées avant l'ajout du choix second choix / retouche / rebut.
+    colonnes = {r[1] for r in conn.execute("PRAGMA table_info(events)")}
+    if "decision" not in colonnes:
+        conn.execute("ALTER TABLE events ADD COLUMN decision TEXT")
     for key, value in DEFAULT_SETTINGS.items():
         conn.execute(
             "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)",

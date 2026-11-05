@@ -134,7 +134,7 @@
       kpi("couches", "", "Couettes", nb(t.couettes), "attendues : " + nb(t.attendu)),
       kpi("cadence", "n", "Cadence réelle", t.cadence == null ? "—" : nb(t.cadence) + "<small style='font-size:.55em;font-weight:600'> /h</small>", "par heure productive"),
       kpi("cle", "r", "Pannes", duree(t.panne_s), t.nb_pannes + " panne" + (t.nb_pannes > 1 ? "s" : "")),
-      kpi("alerte", "r", "Défauts qualité", nb(t.defauts), t.taux_defaut == null ? "—" : pct(t.taux_defaut) + " des couettes"),
+      kpi("alerte", "r", "Défauts qualité", nb(t.defauts), nb(t.second_choix) + " 2nd choix · " + nb(t.rebut) + " rebut · " + nb(t.retouche) + " retouchée" + (t.retouche > 1 ? "s" : "")),
       kpi("horloge", "n", "Présence", duree(t.presence_s), "dont pause " + duree(t.pause_s))
     ].join("");
 
@@ -245,12 +245,20 @@
 
   function graphDefauts(defs) {
     if (vide("g-defauts", !defs.length)) return;
+    // Empilé par décision ; ordre choisi pour que deux couleurs voisines
+    // restent distinguables pour les daltoniens.
+    var series = [["second_choix", "Second choix", "#eb6834"], ["retouche", "Retouchée → 1er choix", "#1baf7a"], ["rebut", "Rebut", "#e34948"]];
     remplacer("g-defauts", {
       type: "bar",
       data: { labels: defs.map(function (x) { return x.libelle; }),
-              datasets: [{ data: defs.map(function (x) { return x.nombre; }), backgroundColor: "#eb6834", borderRadius: 4, borderSkipped: "start", maxBarThickness: 20 }] },
-      options: { indexAxis: "y", plugins: { legend: { display: false } },
-                 scales: { x: { beginAtZero: true, ticks: { precision: 0 } }, y: { grid: { display: false }, ticks: { color: "#14213a" } } } }
+              datasets: series.map(function (s) {
+                return { label: s[1], data: defs.map(function (x) { return x[s[0]]; }), backgroundColor: s[2],
+                         borderColor: "#ffffff", borderWidth: { right: 2 }, borderSkipped: "start", maxBarThickness: 20 };
+              }) },
+      options: { indexAxis: "y", interaction: { mode: "index", intersect: false },
+                 plugins: { legend: { position: "bottom" } },
+                 scales: { x: { stacked: true, beginAtZero: true, ticks: { precision: 0 } },
+                           y: { stacked: true, grid: { display: false }, ticks: { color: "#14213a" } } } }
     });
   }
 
@@ -288,7 +296,8 @@
     ["Couettes", "couettes", { n: 1, f: nb }], ["Attendues", "attendu", { n: 1, f: nb }], ["Rendement", "rendement", { n: 1, f: badge }],
     ["Cadence /h", "cadence", { n: 1, f: nb }], ["Présence", "presence_s", { n: 1, f: duree }], ["Pannes", "panne_s", { n: 1, f: duree }],
     ["Disponibilité", "disponibilite", { n: 1, f: pct }], ["Qualité", "qualite", { n: 1, f: pct }], ["TRS", "trs", { n: 1, f: badgeTrs }],
-    ["Défauts", "defauts", { n: 1, f: nb }]
+    ["Défauts", "defauts", { n: 1, f: nb }], ["1er choix", "premier_choix", { n: 1, f: nb }],
+    ["2nd choix", "second_choix", { n: 1, f: nb }], ["Rebut", "rebut", { n: 1, f: nb }]
   ];
   function rendre(conteneur, id, colonnes, lignes) {
     $(conteneur).innerHTML = table(id, colonnes, lignes);

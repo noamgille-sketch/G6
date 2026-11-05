@@ -47,6 +47,18 @@ def test_rendement_simple():
     assert l.qualite == 100 and round(l.trs, 1) == 60.0   # 75 % x 80 % x 100 %
 
 
+def test_qualite_selon_la_decision():
+    evs = [ev("connexion", t(6))] + [ev("couette", t(6, i + 1)) for i in range(10)]
+    evs += [ev("qualite", t(6, 20), defect_id=1, decision="second_choix"),
+            ev("qualite", t(6, 21), defect_id=1, decision="retouche"),
+            ev("qualite", t(6, 22), defect_id=2, decision="rebut"),
+            ev("qualite", t(6, 23), defect_id=2),            # sans décision = second choix
+            ev("deconnexion", t(8))]
+    l = stats.calculer(evs, t(5), t(13), QUARTS, TZ, C12, maintenant=t(14))[0]
+    assert l.nb_defauts == 4 and l.non_conformes == 3 and l.premier_choix == 7
+    assert l.nb_decision("rebut") == 1 and l.qualite == 70
+
+
 def test_pause_au_prorata():
     q = [dict(x, pause=40) for x in QUARTS]
     evs = [ev("connexion", t(5)), ev("deconnexion", t(9))]  # moitié du quart

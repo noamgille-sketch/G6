@@ -347,13 +347,30 @@
     modal([
       h("h2", {}, ["Quel défaut qualité ?"]),
       h("div", { class: "t-defauts" }, config.defauts.map(function (d) {
-        return h("button", { onclick: function () {
-          evenement("qualite", { defect_id: d.id });
-          fermerModal();
-          toast("Défaut « " + d.libelle + " » enregistré");
-        } }, [d.libelle]);
+        return h("button", { onclick: function () { choisirDecision(d); } }, [d.libelle]);
       })),
       h("div", { class: "t-actions" }, [h("button", { class: "annuler", onclick: fermerModal }, ["Annuler"])])
+    ]);
+  }
+
+  // Selon l'ampleur du défaut, la couette part en second choix, est
+  // retouchée (et repart en 1er choix) ou va au rebut.
+  var DECISIONS = [
+    { cle: "second_choix", libelle: "Second choix", classe: "d-second", icone: "couches" },
+    { cle: "retouche", libelle: "Retouchée → 1er choix", classe: "d-retouche", icone: "ok" },
+    { cle: "rebut", libelle: "Rebut", classe: "d-rebut", icone: "alerte" }
+  ];
+  function choisirDecision(defaut) {
+    modal([
+      h("h2", {}, ["« " + defaut.libelle + " » : que devient la couette ?"]),
+      h("div", { class: "t-decisions" }, DECISIONS.map(function (dec) {
+        return h("button", { class: dec.classe, onclick: function () {
+          evenement("qualite", { defect_id: defaut.id, decision: dec.cle });
+          fermerModal();
+          toast(defaut.libelle + " — " + dec.libelle);
+        } }, [ic(dec.icone), dec.libelle]);
+      })),
+      h("div", { class: "t-actions" }, [h("button", { class: "annuler", onclick: ouvrirQualite }, ["← Retour"])])
     ]);
   }
 

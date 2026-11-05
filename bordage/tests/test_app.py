@@ -42,7 +42,7 @@ def test_parcours_tablette(client):
         {"uuid": "a3", "type": "couette", "ts": ts(500), "operator_id": op},
         {"uuid": "a4", "type": "couette", "ts": ts(400), "operator_id": op},
         {"uuid": "a5", "type": "annulation", "ts": ts(390), "operator_id": op, "ref": "a4"},
-        {"uuid": "a6", "type": "qualite", "ts": ts(300), "operator_id": op, "defect_id": etat["defauts"][0]["id"]},
+        {"uuid": "a6", "type": "qualite", "ts": ts(300), "operator_id": op, "defect_id": etat["defauts"][0]["id"], "decision": "rebut"},
         {"uuid": "a7", "type": "panne_debut", "ts": ts(200), "operator_id": op},
     ]
     r = client.post(f"/api/t/{code}/events", json={"envoye_a": now.isoformat(), "events": events}).get_json()
@@ -57,7 +57,7 @@ def test_parcours_tablette(client):
 
     d = client.get("/api/tableau?periode=jour").get_json()
     assert d["total"]["couettes"] == 1
-    assert d["total"]["defauts"] == 1
+    assert d["total"]["defauts"] == 1 and d["total"]["rebut"] == 1 and d["defauts"][0]["rebut"] == 1
     assert d["of"][0]["of"] == "OF123456"
     assert client.get("/api/direct").status_code == 200
     assert client.get("/export.csv?periode=jour").status_code == 200

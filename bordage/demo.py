@@ -48,8 +48,9 @@ rows = []
 
 def add(poste, op, type_, ts, of=None, defect=None):
     if ts <= now:
+        decision = random.choice(["second_choix"] * 6 + ["retouche"] * 3 + ["rebut"]) if defect else None
         rows.append((str(uuid.uuid4()), poste, op, type_, ts.astimezone(timezone.utc).isoformat(timespec="milliseconds"),
-                     of, defect, now.isoformat()))
+                     of, defect, decision, now.isoformat()))
 
 
 debut = (now.astimezone(tz) - timedelta(days=14)).date()
@@ -85,7 +86,7 @@ for j in range(15):
 for p in postes:
     db.execute("INSERT INTO cadences (poste_id, valeur, depuis, par, saisi_le) VALUES (?, 12, ?, 'démo', ?)",
                (p, (now - timedelta(days=20)).isoformat(), now.isoformat()))
-db.executemany("INSERT INTO events (uuid, poste_id, operator_id, type, ts, of_number, defect_id, received_at) "
-               "VALUES (?, ?, ?, ?, ?, ?, ?, ?)", rows)
+db.executemany("INSERT INTO events (uuid, poste_id, operator_id, type, ts, of_number, defect_id, decision, received_at) "
+               "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", rows)
 db.commit()
 print(f"{len(rows)} événements créés. Connexion : admin / demo123")

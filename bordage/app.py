@@ -30,6 +30,7 @@ ROLES = {
 }
 TYPES_EVENEMENT = {"connexion", "deconnexion", "couette", "panne_debut",
                    "panne_fin", "changement_of", "qualite"}
+LIBELLES_DECISION = {"second_choix": "second choix", "retouche": "retouchée", "rebut": "rebut"}
 LIBELLES_TYPE = {
     "connexion": "Arrivée sur le poste",
     "deconnexion": "Départ du poste",
@@ -366,12 +367,13 @@ def create_app(db_path=None):
             op = e.get("operator_id")
             op = op if op in ops else None
             defect = e.get("defect_id") if e.get("defect_id") in dfs else None
+            decision = e.get("decision") if t == "qualite" and e.get("decision") in stats.DECISIONS else None
             of_number = normaliser_of(e.get("of")) if t == "changement_of" else None
             try:
                 db.execute(
-                    "INSERT INTO events (uuid, poste_id, operator_id, type, ts, of_number, defect_id, received_at) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                    (uid, p["id"], op, t, iso(ts), of_number, defect, iso(maintenant)))
+                    "INSERT INTO events (uuid, poste_id, operator_id, type, ts, of_number, defect_id, decision, received_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (uid, p["id"], op, t, iso(ts), of_number, defect, decision, iso(maintenant)))
             except sqlite3.IntegrityError:
                 pass   # déjà reçu (renvoi après une coupure réseau)
             acceptes.append(uid)
@@ -442,6 +444,10 @@ def create_app(db_path=None):
             "defauts": l.nb_defauts,
             "taux_defaut": round(100.0 * l.nb_defauts / l.couettes, 1) if l.couettes else None,
             "qualite": None if l.qualite is None else round(l.qualite, 1),
+            "premier_choix": l.premier_choix,
+            "second_choix": l.non_conformes - l.nb_decision("rebut"),
+            "rebut": l.nb_decision("rebut"),
+            "retouche": l.nb_decision("retouche"),
             "trs": None if l.trs is None else round(l.trs, 1),
             **extra,
         }
@@ -531,8 +537,10 @@ def create_app(db_path=None):
         # Défauts qualité.
         compte_def = {}
         for l in lignes:
-            for k, v in l.defauts.items():
-                compte_def[k] = compte_def.get(k, 0) + v
+            for (k, dec), v in l.defauts.items():
+                r = compte_def.setdefault(k, {"nombre": 0, "second_choix": 0, "retouche": 0, "rebut": 0})
+                r["nombre"] += v
+                r[dec if dec in stats.DECISIONS else "second_choix"] += v
 
         # Production par OF : chaque couette appartient au dernier OF saisi
         # sur son poste avant elle.
@@ -569,8 +577,8 @@ def create_app(db_path=None):
             "detail": [resume(l, jour=l.jour, quart=l.quart, operatrice=nom_op(l.operator_id),
                               poste=noms_poste.get(l.poste_id, "?"))
                        for l in sorted(lignes, key=lambda l: (l.jour, l.quart, nom_op(l.operator_id)), reverse=True)],
-            "defauts": sorted([{"libelle": noms_def.get(k, "(non précisé)"), "nombre": v}
-                               for k, v in compte_def.items()], key=lambda r: -r["nombre"]),
+            "defauts": sorted([dict(r, libelle=noms_def.get(k, "(non précisé)"))
+                               for k, r in compte_def.items()], key=lambda r: -r["nombre"]),
             "production": {"par_heure": par_heure, "etiquettes": etiquettes, "series": series},
             "tendance": {"etiquettes": etiquettes if not par_heure else [], "series": tendance},
             "of": [{"of": r["of"], "couettes": r["couettes"], "postes": ", ".join(sorted(r["postes"])),
@@ -633,14 +641,17 @@ def create_app(db_path=None):
         w.writerow(["Jour", "Quart", "Opératrice", "Poste", "Présence (min)", "Pause (min)",
                     "Panne (min)", "Temps productif (min)", "Nb pannes", "Couettes",
                     "Couettes attendues", "Rendement / performance (%)", "Disponibilité (%)",
-                    "Qualité (%)", "TRS (%)", "Couettes/heure", "Défauts qualité", "Détail défauts"])
+                    "Qualité (%)", "TRS (%)", "Couettes/heure", "Défauts qualité", "1er choix",
+                    "Second choix", "Retouchées", "Rebut", "Détail défauts"])
         fr = lambda x: "" if x is None else f"{x:.1f}".replace(".", ",")
         for l in lignes:
             w.writerow([l.jour, l.quart, noms_op.get(l.operator_id, "?"), noms_poste.get(l.poste_id, "?"),
                         fr(l.presence_s / 60), fr(l.pause_s / 60), fr(l.panne_s / 60), fr(l.productif_s / 60),
                         l.nb_pannes, l.couettes, fr(l.attendu), fr(l.rendement), fr(l.disponibilite),
-                        fr(l.qualite), fr(l.trs), fr(l.cadence_reelle), l.nb_defauts,
-                        ", ".join(f"{noms_def.get(k, '?')} x{v}" for k, v in l.defauts.items())])
+                        fr(l.qualite), fr(l.trs), fr(l.cadence_reelle), l.nb_defauts, l.premier_choix,
+                        l.non_conformes - l.nb_decision("rebut"), l.nb_decision("retouche"), l.nb_decision("rebut"),
+                        ", ".join(f"{noms_def.get(k, '?')} ({LIBELLES_DECISION.get(d, 'second choix')}) x{v}"
+                                  for (k, d), v in l.defauts.items())])
         # BOM pour qu'Excel lise bien les accents.
         return Response("﻿" + buf.getvalue(), mimetype="text/csv",
                         headers={"Content-Disposition": "attachment; filename=rendement-bordage.csv"})
@@ -663,6 +674,7 @@ def create_app(db_path=None):
             args.append(poste)
         rows = get_db().execute(sql + " ORDER BY e.ts DESC LIMIT 2000", args).fetchall()
         return render_template("journal.html", events=rows, libelle=libelle, LIBELLES=LIBELLES_TYPE,
+                               DECISIONS=LIBELLES_DECISION,
                                postes=postes(actifs=False), peut_corriger=g.user["role"] in ("admin", "chef_prod"))
 
     @app.route("/journal/<int:eid>/annuler", methods=["POST"])

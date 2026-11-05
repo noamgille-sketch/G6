@@ -79,3 +79,10 @@ body.tablette {
 .t-erreur { text-align: center; font-size: 1.4rem; margin-top: 20vh; }
 @media (max-height: 600px) { .t-couette { font-size: 2rem; } .t-couette .rond { width: 60px; height: 60px; } .t-btn { font-size: 1.25rem; } .t-entete img { height: 32px; } }
 @media (max-width: 700px) { .t-entete .sep, .t-entete img { display: none; } .t-btn { font-size: 1.2rem; flex-direction: column; gap: 6px; } }
+.t-decisions { display: grid; gap: 12px; grid-template-columns: repeat(3, 1fr); }
+.t-decisions button { border: 0; border-radius: 16px; color: #fff; font-size: 1.3rem; font-weight: 750; padding: 26px 12px; min-height: 130px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+.t-decisions button .ic { width: 34px; height: 34px; stroke-width: 2.4; }
+.t-decisions .d-second { background: #d97a00; }
+.t-decisions .d-retouche { background: #12924f; }
+.t-decisions .d-rebut { background: #e80032; }
+@media (max-width: 700px) { .t-decisions { grid-template-columns: 1fr; } .t-decisions button { min-height: 80px; flex-direction: row; } }
