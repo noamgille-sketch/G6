@@ -235,21 +235,25 @@
     dernierAppuiCouette = maintenant;
     var e = evenement("couette");
     etat.compteur += 1;
-    etat.derniere = { uuid: e.uuid, ts: maintenant };
+    etat.derniere = { uuid: e.uuid, ts: maintenant, quoi: "couette" };
     sauver();
     vibrer();
     var b = document.getElementById("btn-couette");
     if (b) { b.classList.add("flash"); setTimeout(function () { b.classList.remove("flash"); }, 350); }
+    majCompteur();
+    proposerAnnulation();
+  }
+
+  function majCompteur() {
     var c = document.getElementById("compteur");
     if (c) c.textContent = etat.compteur + " couette" + (etat.compteur > 1 ? "s" : "") + " ce quart";
-    proposerAnnulation();
   }
 
   var minuterieAnnulation = null;
   function proposerAnnulation() {
     fermerAnnulation();
     if (!config.delai_annulation) return;
-    var b = h("button", { class: "t-annuler", id: "annuler", onclick: annulerDerniere }, [ic("annuler"), "Annuler la dernière couette"]);
+    var b = h("button", { class: "t-annuler", id: "annuler", onclick: annulerDerniere }, [ic("annuler"), etat.derniere && etat.derniere.quoi === "defaut" ? "Annuler le dernier défaut" : "Annuler la dernière couette"]);
     document.body.appendChild(b);
     minuterieAnnulation = setTimeout(fermerAnnulation, config.delai_annulation * 1000);
   }
@@ -265,7 +269,7 @@
     etat.derniere = null;
     sauver();
     fermerAnnulation();
-    toast("Dernière couette annulée");
+    toast(etat.derniere && etat.derniere.quoi === "defaut" ? "Dernier défaut annulé" : "Dernière couette annulée");
     rendre();
   }
 
@@ -363,10 +367,19 @@
   function choisirDecision(defaut) {
     modal([
       h("h2", {}, ["« " + defaut.libelle + " » : que devient la couette ?"]),
+      h("p", { class: "t-aide" }, ["Elle est comptée dans ta production : n'appuie pas sur « Couette terminée » pour celle-ci."]),
       h("div", { class: "t-decisions" }, DECISIONS.map(function (dec) {
         return h("button", { class: dec.classe, onclick: function () {
-          evenement("qualite", { defect_id: defaut.id, decision: dec.cle });
+          // La couette en défaut compte comme couette produite : pas besoin
+          // d'appuyer aussi sur « Couette terminée ».
+          var e = evenement("qualite", { defect_id: defaut.id, decision: dec.cle });
+          etat.compteur += 1;
+          etat.derniere = { uuid: e.uuid, ts: Date.now(), quoi: "defaut" };
+          sauver();
           fermerModal();
+          majCompteur();
+          vibrer();
+          proposerAnnulation();
           toast(defaut.libelle + " — " + dec.libelle);
         } }, [ic(dec.icone), dec.libelle]);
       })),

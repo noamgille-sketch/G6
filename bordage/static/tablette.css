@@ -86,3 +86,4 @@ body.tablette {
 .t-decisions .d-retouche { background: #12924f; }
 .t-decisions .d-rebut { background: #e80032; }
 @media (max-width: 700px) { .t-decisions { grid-template-columns: 1fr; } .t-decisions button { min-height: 80px; flex-direction: row; } }
+.t-aide { text-align: center; color: #9fb0cc; margin: -8px 0 18px; font-size: 1.05rem; }

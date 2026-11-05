@@ -51,12 +51,13 @@ def test_parcours_tablette(client):
     client.post(f"/api/t/{code}/events", json={"envoye_a": now.isoformat(), "events": events})
 
     etat = client.get(f"/api/t/{code}/etat").get_json()
-    assert etat["of"] == "OF123456" and etat["panne"] is not None and etat["compteur"] == 1
+    # 1 couette (l'autre annulée) + 1 couette déclarée en défaut
+    assert etat["of"] == "OF123456" and etat["panne"] is not None and etat["compteur"] == 2
     if etat["quart"]:
         assert etat["session"]["operator_id"] == op
 
     d = client.get("/api/tableau?periode=jour").get_json()
-    assert d["total"]["couettes"] == 1
+    assert d["total"]["couettes"] == 2 and d["total"]["premier_choix"] == 1
     assert d["total"]["defauts"] == 1 and d["total"]["rebut"] == 1 and d["defauts"][0]["rebut"] == 1
     assert d["of"][0]["of"] == "OF123456"
     assert client.get("/api/direct").status_code == 200

@@ -20,6 +20,9 @@ Pour chaque opératrice, poste et quart :
                           ne réécrit pas les rendements passés)
     rendement (%)       = couettes réalisées / couettes attendues x 100
     disponibilité (%)   = (présence - pause - panne) / (présence - pause) x 100
+    couettes réalisées  = « Couette terminée » + couettes déclarées en défaut
+                          (l'opératrice n'appuie pas sur « Couette terminée »
+                          pour une couette en défaut)
     qualité (%)         = couettes 1er choix / couettes x 100
                           (une couette déclarée en défaut passe en second choix
                           ou au rebut ; si elle est retouchée, elle reste 1er choix)
@@ -336,9 +339,10 @@ def calculer(events, debut, fin, config, tz, cadence, maintenant=None):
         if q is None:
             continue
         l = ligne(q, e["operator_id"], e["poste_id"])
-        if e["type"] == "couette":
-            l.couettes += 1
-        else:
+        # Une couette en défaut n'est pas déclarée par « Couette terminée » :
+        # la déclaration du défaut vaut couette produite.
+        l.couettes += 1
+        if e["type"] == "qualite":
             k = (e.get("defect_id"), e.get("decision"))
             l.defauts[k] = l.defauts.get(k, 0) + 1
 

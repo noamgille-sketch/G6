@@ -55,8 +55,9 @@ def test_qualite_selon_la_decision():
             ev("qualite", t(6, 23), defect_id=2),            # sans décision = second choix
             ev("deconnexion", t(8))]
     l = stats.calculer(evs, t(5), t(13), QUARTS, TZ, C12, maintenant=t(14))[0]
-    assert l.nb_defauts == 4 and l.non_conformes == 3 and l.premier_choix == 7
-    assert l.nb_decision("rebut") == 1 and l.qualite == 70
+    # 10 « Couette terminée » + 4 couettes déclarées en défaut = 14 produites
+    assert l.couettes == 14 and l.nb_defauts == 4 and l.non_conformes == 3 and l.premier_choix == 11
+    assert l.nb_decision("rebut") == 1 and round(l.qualite, 2) == round(1100 / 14, 2)
 
 
 def test_pause_au_prorata():

@@ -47,6 +47,7 @@ Pour chaque opératrice, sur chaque quart :
 | Pause | pause du quart, au prorata du temps de présence |
 | Temps de panne | de « Début de panne » à « Fin de panne », pendant sa présence (arrêté à la fin du quart si la fin de panne est oubliée) |
 | Temps productif | présence − pause − panne |
+| Couettes réalisées | appuis sur « Couette terminée » + couettes déclarées en défaut (pour une couette en défaut, l'opératrice appuie seulement sur « Problème qualité ») |
 | Couettes attendues | temps productif (en heures) × cadence du poste |
 | **Rendement** | couettes réalisées ÷ couettes attendues × 100 |
 | Disponibilité | temps productif ÷ (présence − pause) × 100 |

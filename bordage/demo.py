@@ -74,13 +74,16 @@ for j in range(15):
                     add(poste, op, "panne_debut", t)
                     t += timedelta(minutes=random.randint(5, 40))
                     add(poste, op, "panne_fin", t)
-                if random.random() < 0.05:
-                    add(poste, op, "qualite", t, defect=random.choice(defauts + defauts[:2]))
                 if random.random() < 0.004:
                     of_num += 1
                     add(poste, op, "changement_of", t, of=f"OF{of_num}")
                 if t < fin:
-                    add(poste, op, "couette", t)
+                    # Une couette en défaut est déclarée par « Problème qualité »
+                    # à la place de « Couette terminée ».
+                    if random.random() < 0.05:
+                        add(poste, op, "qualite", t, defect=random.choice(defauts + defauts[:2]))
+                    else:
+                        add(poste, op, "couette", t)
             add(poste, op, "deconnexion", fin)
 
 for p in postes:

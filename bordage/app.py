@@ -30,6 +30,7 @@ ROLES = {
 }
 TYPES_EVENEMENT = {"connexion", "deconnexion", "couette", "panne_debut",
                    "panne_fin", "changement_of", "qualite"}
+PRODUCTION = ("couette", "qualite")   # événements qui comptent une couette produite
 LIBELLES_DECISION = {"second_choix": "second choix", "retouche": "retouchée", "rebut": "rebut"}
 LIBELLES_TYPE = {
     "connexion": "Arrivée sur le poste",
@@ -38,7 +39,7 @@ LIBELLES_TYPE = {
     "panne_debut": "Début de panne",
     "panne_fin": "Fin de panne",
     "changement_of": "Changement d'OF",
-    "qualite": "Problème qualité",
+    "qualite": "Couette en défaut",
 }
 
 
@@ -307,7 +308,7 @@ def create_app(db_path=None):
         compteur = 0
         if en_cours and q:
             compteur = get_db().execute(
-                "SELECT COUNT(*) FROM events WHERE poste_id = ? AND operator_id = ? AND type = 'couette' "
+                "SELECT COUNT(*) FROM events WHERE poste_id = ? AND operator_id = ? AND type IN ('couette', 'qualite') "
                 "AND cancelled = 0 AND ts >= ?", (p["id"], en_cours.operator_id, iso(q.debut))).fetchone()[0]
         return jsonify({
             "poste": p["name"],
@@ -354,7 +355,7 @@ def create_app(db_path=None):
             if t == "annulation":
                 # Annule une couette comptée par erreur, dans le délai permis.
                 cible = db.execute(
-                    "SELECT * FROM events WHERE uuid = ? AND poste_id = ? AND type = 'couette'",
+                    "SELECT * FROM events WHERE uuid = ? AND poste_id = ? AND type IN ('couette', 'qualite')",
                     (str(e.get("ref", "")), p["id"])).fetchone()
                 if cible and ts - parse_ts(cible["ts"]) <= timedelta(seconds=int(s["delai_annulation"]) + 30):
                     db.execute("UPDATE events SET cancelled = 1, cancelled_by = 'opératrice' WHERE id = ?",
@@ -499,7 +500,8 @@ def create_app(db_path=None):
                     return False
             return True
 
-        couettes = [e for e in evs if e["type"] == "couette" and retenu(e)]
+        # Une couette déclarée en défaut est aussi une couette produite.
+        couettes = [e for e in evs if e["type"] in PRODUCTION and retenu(e)]
 
         # Production dans le temps : par heure sur une journée, sinon par jour.
         par_heure = (fin - debut) <= timedelta(hours=26)
@@ -548,7 +550,7 @@ def create_app(db_path=None):
         for e in evs:
             if e["type"] == "changement_of" and not e["cancelled"]:
                 of_courant[e["poste_id"]] = e["of_number"]
-            elif e["type"] == "couette" and retenu(e):
+            elif e["type"] in PRODUCTION and retenu(e):
                 of = of_courant.get(e["poste_id"]) or "(sans OF)"
                 r = par_of.setdefault(of, {"of": of, "couettes": 0, "postes": set(),
                                            "debut": e["ts"], "fin": e["ts"]})
@@ -614,7 +616,7 @@ def create_app(db_path=None):
             if sess:
                 ligne = next((l for l in lignes if l.poste_id == p["id"] and l.operator_id == sess.operator_id), None)
             derniere = next((e for e in reversed(evs) if e["poste_id"] == p["id"]
-                             and e["type"] == "couette" and not e["cancelled"]), None)
+                             and e["type"] in PRODUCTION and not e["cancelled"]), None)
             out.append({
                 "id": p["id"], "nom": p["name"],
                 "operatrice": noms_op.get(sess.operator_id) if sess else None,
