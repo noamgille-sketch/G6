@@ -38,7 +38,7 @@ def test_parcours_tablette(client):
     ts = lambda s: (now - timedelta(seconds=s)).isoformat()
     events = [
         {"uuid": "a1", "type": "connexion", "ts": ts(600), "operator_id": op},
-        {"uuid": "a2", "type": "changement_of", "ts": ts(590), "operator_id": op, "of": "123456"},
+        {"uuid": "a2", "type": "changement_of", "ts": ts(590), "operator_id": op, "of": "of 123456"},
         {"uuid": "a3", "type": "couette", "ts": ts(500), "operator_id": op},
         {"uuid": "a4", "type": "couette", "ts": ts(400), "operator_id": op},
         {"uuid": "a5", "type": "annulation", "ts": ts(390), "operator_id": op, "ref": "a4"},
@@ -51,14 +51,14 @@ def test_parcours_tablette(client):
     client.post(f"/api/t/{code}/events", json={"envoye_a": now.isoformat(), "events": events})
 
     etat = client.get(f"/api/t/{code}/etat").get_json()
-    assert etat["of"] == "123456" and etat["panne"] is not None and etat["compteur"] == 1
+    assert etat["of"] == "OF123456" and etat["panne"] is not None and etat["compteur"] == 1
     if etat["quart"]:
         assert etat["session"]["operator_id"] == op
 
     d = client.get("/api/tableau?periode=jour").get_json()
     assert d["total"]["couettes"] == 1
     assert d["total"]["defauts"] == 1
-    assert d["of"][0]["of"] == "123456"
+    assert d["of"][0]["of"] == "OF123456"
     assert client.get("/api/direct").status_code == 200
     assert client.get("/export.csv?periode=jour").status_code == 200
     assert client.get("/journal").status_code == 200
@@ -91,3 +91,16 @@ def test_roles(client):
 def test_tablette_code_invalide(client):
     assert client.get("/t/nimporte").status_code == 404
     assert client.get("/api/t/nimporte/etat").status_code == 404
+
+
+def test_cadences(client):
+    code = code_poste(client)
+    d = client.get("/api/tableau?periode=jour").get_json()
+    assert len(d["sans_cadence"]) == 4
+    import sqlite3
+    pid = sqlite3.connect(client.app.config["DB_PATH"]).execute("SELECT id FROM postes WHERE token=?", (code,)).fetchone()[0]
+    from datetime import date
+    r = client.post("/cadences", data={"csrf": "x", "poste": pid, "valeur": "12,5", "depuis": (date.today() - timedelta(days=1)).isoformat()})
+    assert r.status_code == 302
+    assert len(client.get("/api/tableau?periode=jour").get_json()["sans_cadence"]) == 3
+    assert "12,5" in client.get("/cadences").get_data(as_text=True)

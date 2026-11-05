@@ -4,17 +4,16 @@
 <div class="carte">
   <h1>Postes &amp; tablettes</h1>
   <p class="muted petit">Sur chaque tablette, ouvre le lien de son poste dans le navigateur (Chrome) puis « Ajouter à l'écran d'accueil ». Le lien suffit à identifier le poste : pas de mot de passe à taper sur la tablette. Si un lien circule là où il ne devrait pas, génère-en un nouveau.</p>
-  <p class="muted petit">Cadence : nombre de couettes par heure attendues sur le poste (laisser vide = valeur par défaut, {{ cadence_defaut }} /h, modifiable dans Réglages). C'est la base du calcul du rendement.</p>
+  <p class="muted petit">La cadence attendue de chaque poste se règle dans <a href="{{ url_for('cadences') }}">Cadences</a> (accessible aussi aux responsables).</p>
   <div class="defile"><table>
-    <tr><th>Poste</th><th>Cadence (couettes/h)</th><th>Lien de la tablette</th><th></th></tr>
+    <tr><th>Poste</th><th>Lien de la tablette</th><th></th></tr>
     {% for p in postes %}
     <tr class="{{ '' if p.active else 'inactif' }}">
-      <td colspan="2">
+      <td>
         <form method="post" class="ligne-form">
           <input type="hidden" name="csrf" value="{{ csrf_token() }}">
           <input type="hidden" name="action" value="modifier"><input type="hidden" name="id" value="{{ p.id }}">
           <input type="text" name="nom" value="{{ p.name }}" maxlength="40" style="width:140px">
-          <input type="text" name="cadence" value="{{ p.cadence if p.cadence is not none else '' }}" placeholder="{{ cadence_defaut }}" style="width:90px" inputmode="decimal">
           <button class="bouton second petit">Enregistrer</button>
         </form>
       </td>

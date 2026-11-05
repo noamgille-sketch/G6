@@ -16,6 +16,8 @@ Pour chaque opératrice, poste et quart :
     temps de panne      = pannes du poste pendant sa présence
     temps productif     = présence - pause - panne
     couettes attendues  = temps productif (h) x cadence du poste (couettes/h)
+                          (la cadence en vigueur à ce moment-là : la changer
+                          ne réécrit pas les rendements passés)
     rendement (%)       = couettes réalisées / couettes attendues x 100
     disponibilité (%)   = (présence - pause - panne) / (présence - pause) x 100
 
@@ -195,6 +197,7 @@ class Ligne:
     nb_pannes: int = 0
     couettes: int = 0
     attendu: float = 0.0
+    sans_cadence_s: float = 0.0   # temps productif sans cadence renseignée
     defauts: dict = field(default_factory=dict)
 
     @property
@@ -207,7 +210,9 @@ class Ligne:
 
     @property
     def rendement(self):
-        if self.attendu <= 0 or self.productif_s < PRODUCTIF_MIN_S:
+        # Pas de pourcentage si une partie du temps n'a pas de cadence : il
+        # serait faux.
+        if self.attendu <= 0 or self.sans_cadence_s > 0 or self.productif_s < PRODUCTIF_MIN_S:
             return None
         return 100.0 * self.couettes / self.attendu
 
@@ -232,16 +237,18 @@ class Ligne:
         self.nb_pannes += autre.nb_pannes
         self.couettes += autre.couettes
         self.attendu += autre.attendu
+        self.sans_cadence_s += autre.sans_cadence_s
         for k, v in autre.defauts.items():
             self.defauts[k] = self.defauts.get(k, 0) + v
 
 
-def calculer(events, debut, fin, config, tz, cadences, cadence_defaut, maintenant=None):
+def calculer(events, debut, fin, config, tz, cadence, maintenant=None):
     """Lignes par (jour, quart, opératrice, poste) sur la période [debut, fin[.
 
     events doit contenir aussi ce qui précède la période (au moins un quart
     avant), pour retrouver les sessions déjà ouvertes à son début.
-    cadences : {poste_id: couettes/h ou None}.
+    cadence : fonction (poste_id, instant) -> couettes/h en vigueur à cet
+    instant, ou None si elle n'a pas été renseignée (pas de rendement alors).
     """
     maintenant = maintenant or datetime.now(timezone.utc)
     fin_calc = min(fin, maintenant)
@@ -254,10 +261,6 @@ def calculer(events, debut, fin, config, tz, cadences, cadence_defaut, maintenan
         if cle not in lignes:
             lignes[cle] = Ligne(q.jour.isoformat(), q.nom, op, poste)
         return lignes[cle]
-
-    def cadence(poste):
-        c = cadences.get(poste)
-        return float(c) if c else float(cadence_defaut)
 
     for s in sessions:
         for q in quarts:
@@ -282,7 +285,11 @@ def calculer(events, debut, fin, config, tz, cadences, cadence_defaut, maintenan
             l.pause_s += pause
             l.panne_s += panne
             productif = max(0.0, presence - pause - panne)
-            l.attendu += cadence(s.poste_id) * productif / 3600.0
+            c = cadence(s.poste_id, d)
+            if c:
+                l.attendu += float(c) * productif / 3600.0
+            else:
+                l.sans_cadence_s += productif
 
     for e in events:
         if e.get("cancelled") or e["type"] not in ("couette", "qualite"):

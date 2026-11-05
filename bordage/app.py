@@ -41,6 +41,15 @@ LIBELLES_TYPE = {
 }
 
 
+def normaliser_of(texte):
+    """Les OF s'écrivent « OF » suivi de chiffres : OF123456."""
+    t = "".join(str(texte or "").split()).upper()
+    if t.startswith("OF"):
+        t = t[2:]
+    t = t.lstrip("-_:")
+    return ("OF" + t)[:40] if t else None
+
+
 def utcnow():
     return datetime.now(timezone.utc)
 
@@ -165,10 +174,35 @@ def create_app(db_path=None):
     def calcul(debut, fin, poste_id=None):
         s = get_settings()
         evs = charger_events(debut, fin, poste_id)
-        cadences = {p["id"]: p["cadence"] for p in postes(actifs=False)}
-        lignes = stats.calculer(evs, debut, fin, s["quarts"], tz(), cadences,
-                                s["cadence_defaut"], utcnow())
+        lignes = stats.calculer(evs, debut, fin, s["quarts"], tz(), cadence_en_vigueur(), utcnow())
         return evs, lignes
+
+    def cadence_en_vigueur():
+        """Fonction (poste, instant) -> cadence valable à cet instant."""
+        hist = {}
+        for r in get_db().execute("SELECT poste_id, valeur, depuis FROM cadences ORDER BY depuis, id"):
+            hist.setdefault(r["poste_id"], []).append((parse_ts(r["depuis"]), r["valeur"]))
+
+        def cadence(poste_id, instant):
+            valeur = None
+            for depuis, v in hist.get(poste_id, []):
+                if depuis > instant:
+                    break
+                valeur = v
+            return valeur
+        return cadence
+
+    def heure_debut_journee():
+        """Une journée de production commence au début du premier quart."""
+        qs = get_settings()["quarts"]
+        return min(stats._hm(q["debut"]) for q in qs) if qs else stats.time(0, 0)
+
+    def debut_journee(d):
+        return datetime.combine(d, heure_debut_journee(), tzinfo=tz())
+
+    def journee_actuelle():
+        h0 = heure_debut_journee()
+        return (utcnow().astimezone(tz()) - timedelta(hours=h0.hour, minutes=h0.minute)).date()
 
     # ------------------------------------------------------------------
     # Comptes
@@ -326,7 +360,7 @@ def create_app(db_path=None):
             op = e.get("operator_id")
             op = op if op in ops else None
             defect = e.get("defect_id") if e.get("defect_id") in dfs else None
-            of_number = (str(e.get("of") or "").strip()[:40] or None) if t == "changement_of" else None
+            of_number = normaliser_of(e.get("of")) if t == "changement_of" else None
             try:
                 db.execute(
                     "INSERT INTO events (uuid, poste_id, operator_id, type, ts, of_number, defect_id, received_at) "
@@ -347,13 +381,10 @@ def create_app(db_path=None):
         s = get_settings()
         z = tz()
         maintenant = utcnow()
-        # Une « journée » commence au début du premier quart.
-        h0 = min(stats._hm(q["debut"]) for q in s["quarts"]) if s["quarts"] else stats.time(0, 0)
-        jour_prod = (maintenant.astimezone(z) - timedelta(hours=h0.hour, minutes=h0.minute)).date()
+        jour_prod = journee_actuelle()
 
         def bornes(d1, d2):
-            return (datetime.combine(d1, h0, tzinfo=z),
-                    datetime.combine(d2 + timedelta(days=1), h0, tzinfo=z))
+            return debut_journee(d1), debut_journee(d2 + timedelta(days=1))
 
         p = request.args.get("periode", "jour")
         if p == "quart":
@@ -511,7 +542,11 @@ def create_app(db_path=None):
 
         pannes_poste = stats.pannes_par_poste(evs, debut, fin, s["quarts"], z, utcnow())
 
+        cad = cadence_en_vigueur()
+        sans_cadence = [p["name"] for p in postes() if cad(p["id"], utcnow()) is None]
+
         return jsonify({
+            "sans_cadence": sans_cadence,
             "periode": {"libelle": libelle, "debut": iso(debut), "fin": iso(fin)},
             "total": resume(total),
             "operatrices": sorted(
@@ -679,21 +714,43 @@ def create_app(db_path=None):
                 n = db.execute("SELECT COUNT(*) FROM postes").fetchone()[0] + 1
                 db.execute("INSERT INTO postes (name, token) VALUES (?, ?)", (f"Poste {n}", new_token()))
             elif action == "modifier" and pid:
-                cad = request.form.get("cadence", "").replace(",", ".").strip()
-                try:
-                    cad = float(cad) if cad else None
-                except ValueError:
-                    cad = None
-                db.execute("UPDATE postes SET name = ?, cadence = ? WHERE id = ?",
-                           (request.form.get("nom", "").strip()[:40] or f"Poste {pid}", cad, pid))
+                db.execute("UPDATE postes SET name = ? WHERE id = ?",
+                           (request.form.get("nom", "").strip()[:40] or f"Poste {pid}", pid))
             elif action == "nouveau_lien" and pid:
                 db.execute("UPDATE postes SET token = ? WHERE id = ?", (new_token(), pid))
             elif action == "basculer" and pid:
                 db.execute("UPDATE postes SET active = 1 - active WHERE id = ?", (pid,))
             db.commit()
             return redirect(url_for("admin_postes"))
-        return render_template("admin_postes.html", postes=postes(actifs=False),
-                               cadence_defaut=get_settings()["cadence_defaut"])
+        return render_template("admin_postes.html", postes=postes(actifs=False))
+
+    @app.route("/cadences", methods=["GET", "POST"])
+    @connecte()
+    def cadences():
+        """Les responsables renseignent la cadence attendue de chaque poste."""
+        db = get_db()
+        if request.method == "POST":
+            pid = request.form.get("poste", type=int)
+            try:
+                valeur = float(request.form.get("valeur", "").replace(",", "."))
+                if not 0 < valeur < 1000:
+                    raise ValueError
+                jour = date.fromisoformat(request.form.get("depuis", ""))
+            except ValueError:
+                flash("Saisis une cadence (nombre de couettes par heure) et une date.", "erreur")
+                return redirect(url_for("cadences"))
+            if db.execute("SELECT 1 FROM postes WHERE id = ?", (pid,)).fetchone():
+                db.execute("INSERT INTO cadences (poste_id, valeur, depuis, par, saisi_le) VALUES (?, ?, ?, ?, ?)",
+                           (pid, valeur, iso(debut_journee(jour)), g.user["display_name"], iso(utcnow())))
+                db.commit()
+                flash("Cadence enregistrée.", "ok")
+            return redirect(url_for("cadences"))
+        cad = cadence_en_vigueur()
+        maintenant = utcnow()
+        lignes = [{"poste": p, "actuelle": cad(p["id"], maintenant)} for p in postes(actifs=False)]
+        hist = db.execute("SELECT c.*, p.name AS poste FROM cadences c JOIN postes p ON p.id = c.poste_id "
+                          "ORDER BY c.depuis DESC, c.id DESC LIMIT 200").fetchall()
+        return render_template("cadences.html", lignes=lignes, hist=hist, aujourdhui=journee_actuelle().isoformat())
 
     @app.route("/admin/comptes", methods=["GET", "POST"])
     @connecte("admin")
@@ -734,13 +791,6 @@ def create_app(db_path=None):
     @connecte("admin")
     def admin_reglages():
         if request.method == "POST":
-            try:
-                cad = float(request.form.get("cadence_defaut", "").replace(",", "."))
-                if cad <= 0:
-                    raise ValueError
-                set_setting("cadence_defaut", cad)
-            except ValueError:
-                flash("La cadence doit être un nombre positif.", "erreur")
             set_setting("afficher_compteur", request.form.get("afficher_compteur") == "1")
             try:
                 set_setting("delai_annulation", max(0, min(600, int(request.form.get("delai_annulation", 60)))))

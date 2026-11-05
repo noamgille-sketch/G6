@@ -13,6 +13,7 @@
   <nav>
     <a href="{{ url_for('tableau') }}" class="{{ 'actif' if request.endpoint == 'tableau' }}">Tableau de bord</a>
     <a href="{{ url_for('journal') }}" class="{{ 'actif' if request.endpoint == 'journal' }}">Journal</a>
+    <a href="{{ url_for('cadences') }}" class="{{ 'actif' if request.endpoint == 'cadences' }}">Cadences</a>
     {% if user.role in ('admin', 'chef_prod') %}
     <a href="{{ url_for('admin_liste', liste='operatrices') }}" class="{{ 'actif' if request.view_args and request.view_args.get('liste') == 'operatrices' }}">Opératrices</a>
     <a href="{{ url_for('admin_liste', liste='defauts') }}" class="{{ 'actif' if request.view_args and request.view_args.get('liste') == 'defauts' }}">Défauts</a>

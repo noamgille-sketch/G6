@@ -58,7 +58,7 @@
           '<div class="muted">' + (p.operatrice ? esc(p.operatrice) + " depuis " + heure(p.depuis) : "Personne de connecté") + "</div>" +
           '<div style="display:flex;justify-content:space-between;align-items:end;margin-top:.4rem">' +
           '<div><div class="grand">' + p.couettes + '</div><div class="muted petit">couettes ce quart</div></div>' +
-          '<div style="text-align:right"><div>' + badge(p.rendement) + '</div><div class="muted petit">OF ' + esc(p.of || "—") + "</div>" +
+          '<div style="text-align:right"><div>' + badge(p.rendement) + '</div><div class="muted petit">' + esc(p.of || "Pas d'OF") + "</div>" +
           (p.derniere_couette ? '<div class="muted petit">dernière à ' + heure(p.derniere_couette) + "</div>" : "") +
           "</div></div></div>";
       }).join("") || '<div class="vide">Aucun poste actif.</div>';
@@ -74,6 +74,13 @@
 
   function afficher(d) {
     $("libelle").textContent = d.periode.libelle;
+    var alerte = $("alerte-cadence");
+    if (d.sans_cadence.length) {
+      alerte.style.display = "";
+      alerte.innerHTML = "Cadence pas encore renseignée pour : <b>" + d.sans_cadence.map(esc).join(", ") +
+        "</b>. Sans cadence, le rendement de ces postes ne peut pas être calculé. " +
+        '<a href="/cadences">Renseigner les cadences</a>';
+    } else alerte.style.display = "none";
     var t = d.total;
     $("kpis").innerHTML = [
       ["Couettes", nb(t.couettes), "attendues : " + nb(t.attendu)],

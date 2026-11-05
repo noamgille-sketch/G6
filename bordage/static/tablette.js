@@ -159,7 +159,7 @@
     var enPanne = !!etat.panne;
     app.appendChild(h("div", { class: "t-info" }, [
       h("span", { class: "t-puce" }, [h("b", {}, [nomOperatrice(etat.operator_id)])]),
-      h("span", { class: "t-puce" }, ["OF : ", h("b", {}, [etat.of || "—"])]),
+      h("span", { class: "t-puce" }, [h("b", {}, [etat.of || "Pas d'OF"])]),
       h("button", { class: "t-quitter", onclick: deconnecter }, ["Changer d'opératrice"])
     ]));
     if (enPanne) {
@@ -293,7 +293,8 @@
   function ouvrirOF() {
     var saisie = "";
     var affichage = h("div", { class: "t-saisie" }, [""]);
-    function maj() { affichage.textContent = saisie || " "; }
+    // Les OF s'écrivent « OF » suivi de chiffres : seul le numéro est à taper.
+    function maj() { affichage.textContent = "OF" + saisie; }
     var touches = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "C"];
     var pave = h("div", { class: "t-pave" }, touches.map(function (t) {
       return h("button", { onclick: function () {
@@ -310,11 +311,12 @@
         h("button", { class: "annuler", onclick: fermerModal }, ["Annuler"]),
         h("button", { class: "valider", onclick: function () {
           if (!saisie) return;
-          evenement("changement_of", { of: saisie });
-          etat.of = saisie;
+          var of = "OF" + saisie;
+          evenement("changement_of", { of: of });
+          etat.of = of;
           sauver();
           fermerModal();
-          toast("OF " + saisie + " enregistré");
+          toast(of + " enregistré");
           rendre();
         } }, ["Valider"])
       ])

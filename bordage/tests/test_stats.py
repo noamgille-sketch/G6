@@ -14,6 +14,9 @@ QUARTS = [
 ]
 
 
+C12 = lambda poste, instant: 12
+
+
 def t(h, m=0, jour=5):
     return datetime(2026, 11, jour, h, m, tzinfo=TZ)
 
@@ -33,7 +36,7 @@ def test_rendement_simple():
     evs = [ev("connexion", t(6))]
     evs += [ev("couette", t(6, 5 * i + 1)) for i in range(12)]
     evs += [ev("panne_debut", t(7)), ev("panne_fin", t(7, 30)), ev("deconnexion", t(8))]
-    lignes = stats.calculer(evs, t(5), t(13), QUARTS, TZ, {1: 10}, 12, maintenant=t(14))
+    lignes = stats.calculer(evs, t(5), t(13), QUARTS, TZ, lambda p, i: 10, maintenant=t(14))
     assert len(lignes) == 1
     l = lignes[0]
     assert l.presence_s == 7200 and l.panne_s == 1800 and l.nb_pannes == 1
@@ -46,13 +49,13 @@ def test_rendement_simple():
 def test_pause_au_prorata():
     q = [dict(x, pause=40) for x in QUARTS]
     evs = [ev("connexion", t(5)), ev("deconnexion", t(9))]  # moitié du quart
-    l = stats.calculer(evs, t(5), t(13), q, TZ, {}, 12, maintenant=t(14))[0]
+    l = stats.calculer(evs, t(5), t(13), q, TZ, C12, maintenant=t(14))[0]
     assert l.pause_s == 20 * 60
 
 
 def test_session_oubliee_coupee_en_fin_de_quart():
     evs = [ev("connexion", t(10)), ev("couette", t(10, 30))]
-    lignes = stats.calculer(evs, t(5), t(5, jour=6), QUARTS, TZ, {}, 12, maintenant=t(20))
+    lignes = stats.calculer(evs, t(5), t(5, jour=6), QUARTS, TZ, C12, maintenant=t(20))
     assert len(lignes) == 1
     assert lignes[0].presence_s == 3 * 3600  # 10h -> 13h, pas jusqu'à 20h
 
@@ -65,7 +68,7 @@ def test_panne_oubliee_coupee_en_fin_de_quart():
 
 def test_changement_operatrice_ferme_la_session():
     evs = [ev("connexion", t(6), op=1), ev("connexion", t(8), op=2), ev("deconnexion", t(9), op=2)]
-    lignes = stats.calculer(evs, t(5), t(13), QUARTS, TZ, {}, 12, maintenant=t(14))
+    lignes = stats.calculer(evs, t(5), t(13), QUARTS, TZ, C12, maintenant=t(14))
     par_op = {l.operator_id: l.presence_s for l in lignes}
     assert par_op == {1: 7200, 2: 3600}
 
@@ -73,7 +76,7 @@ def test_changement_operatrice_ferme_la_session():
 def test_session_a_cheval_sur_deux_quarts_et_couettes_annulees():
     evs = [ev("connexion", t(12)), ev("couette", t(12, 30)), ev("couette", t(13, 30)),
            ev("couette", t(13, 40), cancelled=1), ev("connexion", t(13, 5), op=1), ev("deconnexion", t(14))]
-    lignes = stats.calculer(evs, t(5), t(21), QUARTS, TZ, {}, 12, maintenant=t(22))
+    lignes = stats.calculer(evs, t(5), t(21), QUARTS, TZ, C12, maintenant=t(22))
     par_quart = {l.quart: (l.presence_s, l.couettes) for l in lignes}
     assert par_quart["Matin"] == (3600, 1)
     assert par_quart["Après-midi"] == (55 * 60, 1)
@@ -81,7 +84,7 @@ def test_session_a_cheval_sur_deux_quarts_et_couettes_annulees():
 
 def test_panne_annulee_ignoree():
     evs = [ev("connexion", t(6)), ev("panne_debut", t(7), cancelled=1), ev("deconnexion", t(8))]
-    l = stats.calculer(evs, t(5), t(13), QUARTS, TZ, {}, 12, maintenant=t(14))[0]
+    l = stats.calculer(evs, t(5), t(13), QUARTS, TZ, C12, maintenant=t(14))[0]
     assert l.panne_s == 0
 
 
@@ -93,5 +96,19 @@ def test_session_en_cours():
 
 def test_pas_de_pourcentage_sur_un_temps_trop_court():
     evs = [ev("connexion", t(6)), ev("couette", t(6, 0)), ev("deconnexion", t(6, 1))]
-    l = stats.calculer(evs, t(5), t(13), QUARTS, TZ, {}, 12, maintenant=t(14))[0]
+    l = stats.calculer(evs, t(5), t(13), QUARTS, TZ, C12, maintenant=t(14))[0]
     assert l.couettes == 1 and l.rendement is None
+
+
+def test_sans_cadence_pas_de_rendement():
+    evs = [ev("connexion", t(6)), ev("couette", t(6, 30)), ev("deconnexion", t(8))]
+    l = stats.calculer(evs, t(5), t(13), QUARTS, TZ, lambda p, i: None, maintenant=t(14))[0]
+    assert l.couettes == 1 and l.rendement is None
+
+
+def test_changement_de_cadence_ne_reecrit_pas_le_passe():
+    # 10/h jusqu'au 5 à 13h, puis 20/h.
+    cad = lambda p, i: 10 if i < t(13) else 20
+    evs = [ev("connexion", t(6)), ev("deconnexion", t(7)), ev("connexion", t(14)), ev("deconnexion", t(15))]
+    lignes = stats.calculer(evs, t(5), t(21), QUARTS, TZ, cad, maintenant=t(22))
+    assert {l.quart: round(l.attendu) for l in lignes} == {"Matin": 10, "Après-midi": 20}

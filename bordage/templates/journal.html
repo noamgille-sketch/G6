@@ -24,7 +24,7 @@
     <tr class="{{ 'annule' if e.cancelled }}">
       <td>{{ e.ts|heure_locale }}</td><td>{{ e.poste }}</td><td>{{ e.operatrice or '—' }}</td>
       <td>{{ LIBELLES.get(e.type, e.type) }}</td>
-      <td>{% if e.of_number %}OF {{ e.of_number }}{% elif e.defaut %}{{ e.defaut }}{% endif %}{% if e.cancelled %} <span class="petit">(annulé par {{ e.cancelled_by }})</span>{% endif %}</td>
+      <td>{% if e.of_number %}{{ e.of_number }}{% elif e.defaut %}{{ e.defaut }}{% endif %}{% if e.cancelled %} <span class="petit">(annulé par {{ e.cancelled_by }})</span>{% endif %}</td>
       {% if peut_corriger %}<td>{% if e.type not in ('connexion', 'deconnexion') %}
         <form method="post" action="{{ url_for('journal_annuler', eid=e.id) }}">
           <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="retour" value="{{ request.full_path }}">

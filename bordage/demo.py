@@ -64,7 +64,7 @@ for j in range(15):
             fin = d0 + timedelta(hours=duree) - timedelta(minutes=random.randint(0, 10))
             add(poste, op, "connexion", t)
             of_num += 1
-            add(poste, op, "changement_of", t + timedelta(minutes=1), of=str(of_num))
+            add(poste, op, "changement_of", t + timedelta(minutes=1), of=f"OF{of_num}")
             cycle = 3600 / (12 * talent[op])
             while t < fin:
                 t += timedelta(seconds=random.gauss(cycle, cycle * 0.15))
@@ -76,11 +76,14 @@ for j in range(15):
                     add(poste, op, "qualite", t, defect=random.choice(defauts[:5] + defauts[:2]))
                 if random.random() < 0.004:
                     of_num += 1
-                    add(poste, op, "changement_of", t, of=str(of_num))
+                    add(poste, op, "changement_of", t, of=f"OF{of_num}")
                 if t < fin:
                     add(poste, op, "couette", t)
             add(poste, op, "deconnexion", fin)
 
+for p in postes:
+    db.execute("INSERT INTO cadences (poste_id, valeur, depuis, par, saisi_le) VALUES (?, 12, ?, 'démo', ?)",
+               (p, (now - timedelta(days=20)).isoformat(), now.isoformat()))
 db.executemany("INSERT INTO events (uuid, poste_id, operator_id, type, ts, of_number, defect_id, received_at) "
                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)", rows)
 db.commit()

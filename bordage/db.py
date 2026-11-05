@@ -21,8 +21,6 @@ CREATE TABLE IF NOT EXISTS postes (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     token TEXT UNIQUE NOT NULL,
-    -- Couettes par heure attendues sur ce poste. NULL = valeur par défaut.
-    cadence REAL,
     active INTEGER NOT NULL DEFAULT 1
 );
 
@@ -60,6 +58,19 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts);
 CREATE INDEX IF NOT EXISTS idx_events_poste_ts ON events(poste_id, ts);
 
+-- Cadence attendue (couettes par heure) de chaque poste, avec historique :
+-- une nouvelle valeur s'applique à partir de "depuis", les rendements
+-- d'avant restent calculés avec l'ancienne.
+CREATE TABLE IF NOT EXISTS cadences (
+    id INTEGER PRIMARY KEY,
+    poste_id INTEGER NOT NULL REFERENCES postes(id),
+    valeur REAL NOT NULL,
+    depuis TEXT NOT NULL,        -- UTC, ISO 8601
+    par TEXT NOT NULL,
+    saisi_le TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_cadences ON cadences(poste_id, depuis);
+
 CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -67,14 +78,12 @@ CREATE TABLE IF NOT EXISTS settings (
 """
 
 DEFAULT_SETTINGS = {
-    # Couettes par heure attendues quand le poste n'a pas sa propre cadence.
-    "cadence_defaut": 12,
     # Les quarts. "fin" avant "debut" = le quart passe minuit.
     # "pause" en minutes, retirée du temps de présence au prorata.
     "quarts": [
-        {"nom": "Matin", "debut": "05:00", "fin": "13:00", "pause": 20},
-        {"nom": "Après-midi", "debut": "13:00", "fin": "21:00", "pause": 20},
-        {"nom": "Nuit", "debut": "21:00", "fin": "05:00", "pause": 20},
+        {"nom": "Matin", "debut": "05:00", "fin": "13:00", "pause": 30},
+        {"nom": "Après-midi", "debut": "13:00", "fin": "21:00", "pause": 30},
+        {"nom": "Nuit", "debut": "21:00", "fin": "05:00", "pause": 30},
     ],
     # Affiche à l'opératrice le nombre de couettes faites dans son quart.
     "afficher_compteur": True,

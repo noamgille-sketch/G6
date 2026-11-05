@@ -19,8 +19,8 @@ Il faut un PC qui reste allumé dans l'atelier (le « serveur »), sur le même 
 4. Ouvrir cette adresse dans un navigateur et créer le compte administrateur (le tien).
 5. Dans **Comptes** : créer le compte du chef de production, puis celui de la supply chain.
 6. Dans **Opératrices** : saisir le prénom de chaque opératrice.
-7. Dans **Postes & tablettes** : régler la cadence attendue de chaque poste (couettes par heure).
-8. Dans **Réglages** : vérifier les horaires des quarts et la durée des pauses.
+7. Dans **Cadences** : les responsables (chef de production ou supply chain) saisissent la cadence attendue de chaque poste, en couettes par heure. Tant qu'elle n'est pas renseignée, les couettes sont comptées mais aucun rendement n'est affiché, et un bandeau le signale sur le tableau de bord.
+8. Dans **Réglages** : vérifier les horaires des quarts (par défaut 5h–13h, 13h–21h, 21h–5h, avec 30 min de pause chacun).
 
 À prévoir côté informatique :
 - donner au PC serveur une **adresse IP fixe** (sinon les tablettes ne le retrouveront plus après un redémarrage) ;
@@ -55,6 +55,10 @@ Exemple : 7 h de présence, 20 min de pause, 40 min de panne, donc 6 h productiv
 
 Le rendement d'une opératrice ne tient donc pas compte des pannes : elle n'est pas pénalisée quand la machine est arrêtée.
 
+Quand un responsable change une cadence, il choisit à partir de quel jour elle s'applique. Les rendements des jours d'avant restent calculés avec l'ancienne cadence. L'historique des cadences (qui a saisi quoi, et quand) est visible dans **Cadences**.
+
+Les OF s'écrivent « OF » suivi de chiffres (par exemple OF241507). Sur la tablette, l'opératrice ne tape que les chiffres.
+
 À la fin de chaque quart, la tablette revient automatiquement à la liste des noms.
 
 ## Corriger une erreur
@@ -64,7 +68,7 @@ Le rendement d'une opératrice ne tient donc pas compte des pannes : elle n'est 
 
 ## Rôles
 
-| | Tableau de bord, journal, export | Annuler un clic, gérer les opératrices et les défauts | Postes, comptes, réglages |
+| | Tableau de bord, journal, export, cadences | Annuler un clic, gérer les opératrices et les défauts | Postes, comptes, réglages |
 |---|---|---|---|
 | Supply chain | ✔ | | |
 | Chef de production | ✔ | ✔ | |
