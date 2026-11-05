@@ -80,13 +80,13 @@ Toutes les données sont dans le seul fichier `data/bordage.sqlite3`. Le copier 
 
 ## Essayer avec de fausses données
 
-```bash
-set BORDAGE_DATA=demo-data
-python demo.py
-python run.py
-```
+Double-cliquer sur **`Lancer-demo.bat`**. Il remplit une base séparée (dossier `demo-data`) avec 2 semaines de fausse production pour 12 opératrices, puis ouvre le navigateur.
 
-Cela remplit une base séparée avec 2 semaines de fausse production. Connexion : `admin` / `demo123`.
+- Panel responsable : `admin` / `demo123`
+- Tablettes : les liens des 4 postes s'affichent dans la fenêtre noire. On peut les ouvrir dans un autre onglet, ou sur un téléphone connecté au même Wi-Fi.
+- Pour repartir de zéro : supprimer le dossier `demo-data`.
+
+La vraie base n'est pas touchée.
 
 ## Pour les développeurs
 

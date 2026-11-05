@@ -25,7 +25,8 @@ if not os.environ.get("BORDAGE_DATA"):
 app = create_app()
 db = sqlite3.connect(app.config["DB_PATH"])
 if db.execute("SELECT COUNT(*) FROM events").fetchone()[0]:
-    sys.exit("La base de démo contient déjà des données.")
+    print("La base de démo existe déjà, on la garde.")
+    sys.exit(0)
 
 tz = ZoneInfo("Europe/Paris")
 random.seed(4)
